@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Sheets436</string>
+    <string name="no_net">No network connection available.</string>
+    <string name="no_goog">This app requires Google Play Services. Please install Google Play Services on your device and relaunch this app.</string>
 </resources>
