@@ -83,6 +83,6 @@ public enum UpdateType {
 }
 ```
 
-[quickstart]: <http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax>
+[quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
 [library]: <https://developer.android.com/studio/projects/android-library.html>
