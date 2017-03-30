@@ -29,10 +29,21 @@ the code into your own `java` file).
 2. Import the library as a module. I'll go over importing it as an `aar`, though
 importing the source code isn't terribly difficult either. You'll want to go to
 `File -> New -> New Module...` and choose `import .JAR/.AAR Package`. This
-should make the library part of your app. Your main module will still need to
+should make the library part of your app.
+
+![New Module](new_module.png)
+
+![Import Package](import_package.png)
+
+Your main module will still need to
 list the library as a dependency, so right click on the `app` in the `Android`
 view and select `Open Module Settings`. From there, add a `Module Dependency` to
 the app.
+
+![Module Settings](module_settings.png)
+
+![Module Dependency](module_dependency.png)
+
 
 ## Usage
 
