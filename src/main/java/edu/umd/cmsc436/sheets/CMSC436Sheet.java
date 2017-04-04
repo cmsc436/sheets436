@@ -1,0 +1,199 @@
+package edu.umd.cmsc436.sheets;
+
+import android.Manifest;
+import android.accounts.AccountManager;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Build;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.util.Log;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.util.ExponentialBackOff;
+import com.google.api.services.sheets.v4.SheetsScopes;
+
+import java.util.Collections;
+
+import static android.app.Activity.RESULT_OK;
+
+/**
+ * Class to instantiate and hook into parts of the normal app
+ */
+
+public class CMSC436Sheet {
+
+    private final String[] PERMISSIONS = new String[] {
+            Manifest.permission.GET_ACCOUNTS
+    };
+
+    private final String SHARED_PREFS_NAME = "cmsc436.tharri16.googlesheetshelper";
+    private final String PREF_ACCOUNT_NAME = "account name";
+
+    private Host host;
+    private GoogleAccountCredential credentials;
+
+    private TestType cache_type;
+    private String cache_userId;
+    private float cache_value;
+    private String appName;
+    private String spreadsheetId;
+
+    public CMSC436Sheet (Host host, String appName, String spreadsheetId) {
+        this.host = host;
+        this.appName = appName;
+        this.spreadsheetId = spreadsheetId;
+
+        credentials = GoogleAccountCredential.usingOAuth2(host.getActivity(),
+                Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
+    }
+
+    public void writeData (TestType testType, String userId, float value) {
+        cache_type = testType;
+        cache_userId = userId;
+        cache_value = value;
+        if (checkConnection()) {
+            WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host);
+            writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
+        }
+    }
+
+    public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        if (requestCode == host.getRequestCode(Action.REQUEST_PERMISSIONS)) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                resume();
+            }
+        }
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == host.getRequestCode(Action.REQUEST_ACCOUNT_NAME)) {
+            String accountName =
+                    data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+            if (accountName != null) {
+                SharedPreferences settings =
+                        host.getActivity().getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+                settings.edit().putString(PREF_ACCOUNT_NAME, accountName).apply();
+                resume();
+            }
+        } else if (requestCode == host.getRequestCode(Action.REQUEST_PLAY_SERVICES)) {
+            if (resultCode != RESULT_OK) {
+                Log.e(this.getClass().getSimpleName(), "Requires Google Play Services");
+            } else {
+                resume();
+            }
+        } else if (requestCode == host.getRequestCode(Action.REQUEST_AUTHORIZATION)) {
+            if (resultCode == RESULT_OK) {
+                resume();
+            }
+        }
+    }
+
+    private void resume () {
+        writeData(cache_type, cache_userId, cache_value);
+    }
+
+    private boolean checkConnection () {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int statusCode = apiAvailability.isGooglePlayServicesAvailable(host.getActivity());
+        if (statusCode != ConnectionResult.SUCCESS) {
+            if (apiAvailability.isUserResolvableError(statusCode)) {
+                showGooglePlayErrorDialog(host);
+            }
+
+            return false;
+        }
+
+        if (credentials.getSelectedAccountName() == null) {
+            // if not on Marshmallow then the manifest takes care of the permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                    && host.getActivity().checkSelfPermission(PERMISSIONS[0]) != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(host.getActivity(), PERMISSIONS, host.getRequestCode(Action.REQUEST_PERMISSIONS));
+
+                return false;
+            }
+
+            SharedPreferences prefs = host.getActivity().getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+            String accountName = prefs.getString(PREF_ACCOUNT_NAME, null);
+            if (accountName != null) {
+                credentials.setSelectedAccountName(accountName);
+            } else {
+                host.getActivity().startActivityForResult(credentials.newChooseAccountIntent(), host.getRequestCode(Action.REQUEST_ACCOUNT_NAME));
+                return false;
+            }
+        }
+
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) host.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        if (networkInfo == null || !networkInfo.isConnected()) {
+            host.notifyFinished(new NoNetworkException());
+            return false;
+        }
+
+        return true;
+    }
+
+    static void showGooglePlayErrorDialog (Host host) {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int statusCode = apiAvailability.isGooglePlayServicesAvailable(host.getActivity());
+        apiAvailability.getErrorDialog(host.getActivity(), statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
+    }
+
+    public static float unixToSheetsEpoch(long milliseconds) {
+        // days between 1/1/1900 and 1/1/1970, horribly inflexible timezone adjustment, then number of milliseconds in a day
+        return 25569 + ((milliseconds-14400000)/86400000f);
+    }
+
+    public interface Host {
+
+        int getRequestCode(Action action);
+
+        Activity getActivity();
+
+        void notifyFinished(Exception e);
+    }
+
+    public enum Action {
+        REQUEST_PERMISSIONS,
+        REQUEST_ACCOUNT_NAME,
+        REQUEST_PLAY_SERVICES,
+        REQUEST_AUTHORIZATION
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static class NoNetworkException extends Exception {}
+
+    public enum TestType {
+        LH_TAP("'Tapping Test (LH)'"),
+        RH_TAP("'Tapping Test (RH)'"),
+        LH_SPIRAL("'Spiral Test (LH)'"),
+        RH_SPIRAL("'Spiral Test (RH)'"),
+        LH_LEVEL("'Level Test (LH)'"),
+        RH_LEVEL("'Level Test (RH)'"),
+        LH_POP("'Balloon Test (LH)'"),
+        RH_POP("'Balloon Test (RH)'"),
+        LH_CURL("'Curling Test (LH)'"),
+        RH_CURL("'Curling Test (RH)'");
+
+        private final String id;
+
+        TestType(String sheetId) {
+            id = sheetId;
+        }
+
+        public String toId() {
+            return id;
+        }
+    }
+
+
+}
