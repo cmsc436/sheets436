@@ -50,4 +50,4 @@ google-services.json
 freeline.py
 freeline/
 freeline_project_description.json
-/app/src/main/res/values/userID.xml
+/sheets_helper/src/main/res/values/userID.xml
