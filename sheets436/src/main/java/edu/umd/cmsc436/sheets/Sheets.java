@@ -28,16 +28,17 @@ import static android.app.Activity.RESULT_OK;
  * Class to instantiate and hook into parts of the normal app
  */
 
-public class CMSC436Sheet {
+public class Sheets {
 
     private final String[] PERMISSIONS = new String[] {
             Manifest.permission.GET_ACCOUNTS
     };
 
-    private final String SHARED_PREFS_NAME = "cmsc436.tharri16.googlesheetshelper";
+    private final String SHARED_PREFS_NAME = "edu.umd.cmsc436.sheets";
     private final String PREF_ACCOUNT_NAME = "account name";
 
     private Host host;
+    private Activity hostActivity;
     private GoogleAccountCredential credentials;
 
     private TestType cache_type;
@@ -46,12 +47,13 @@ public class CMSC436Sheet {
     private String appName;
     private String spreadsheetId;
 
-    public CMSC436Sheet (Host host, String appName, String spreadsheetId) {
+    public Sheets(Host host, String appName, String spreadsheetId) {
         this.host = host;
+        this.hostActivity = (Activity) host;
         this.appName = appName;
         this.spreadsheetId = spreadsheetId;
 
-        credentials = GoogleAccountCredential.usingOAuth2(host.getActivity(),
+        credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
                 Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
     }
 
@@ -60,7 +62,8 @@ public class CMSC436Sheet {
         cache_userId = userId;
         cache_value = value;
         if (checkConnection()) {
-            WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host);
+            // TODO: modify class field visibility (or add public getters) to clear up unnecessary params
+            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
         }
     }
@@ -79,7 +82,7 @@ public class CMSC436Sheet {
                     data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
             if (accountName != null) {
                 SharedPreferences settings =
-                        host.getActivity().getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+                        hostActivity.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
                 settings.edit().putString(PREF_ACCOUNT_NAME, accountName).apply();
                 resume();
             }
@@ -102,10 +105,10 @@ public class CMSC436Sheet {
 
     private boolean checkConnection () {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int statusCode = apiAvailability.isGooglePlayServicesAvailable(host.getActivity());
+        int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
         if (statusCode != ConnectionResult.SUCCESS) {
             if (apiAvailability.isUserResolvableError(statusCode)) {
-                showGooglePlayErrorDialog(host);
+                showGooglePlayErrorDialog();
             }
 
             return false;
@@ -114,25 +117,25 @@ public class CMSC436Sheet {
         if (credentials.getSelectedAccountName() == null) {
             // if not on Marshmallow then the manifest takes care of the permission
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                    && host.getActivity().checkSelfPermission(PERMISSIONS[0]) != PackageManager.PERMISSION_GRANTED) {
+                    && hostActivity.checkSelfPermission(PERMISSIONS[0]) != PackageManager.PERMISSION_GRANTED) {
 
-                ActivityCompat.requestPermissions(host.getActivity(), PERMISSIONS, host.getRequestCode(Action.REQUEST_PERMISSIONS));
+                ActivityCompat.requestPermissions(hostActivity, PERMISSIONS, host.getRequestCode(Action.REQUEST_PERMISSIONS));
 
                 return false;
             }
 
-            SharedPreferences prefs = host.getActivity().getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+            SharedPreferences prefs = hostActivity.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
             String accountName = prefs.getString(PREF_ACCOUNT_NAME, null);
             if (accountName != null) {
                 credentials.setSelectedAccountName(accountName);
             } else {
-                host.getActivity().startActivityForResult(credentials.newChooseAccountIntent(), host.getRequestCode(Action.REQUEST_ACCOUNT_NAME));
+                hostActivity.startActivityForResult(credentials.newChooseAccountIntent(), host.getRequestCode(Action.REQUEST_ACCOUNT_NAME));
                 return false;
             }
         }
 
         ConnectivityManager connectivityManager =
-                (ConnectivityManager) host.getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+                (ConnectivityManager) hostActivity.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         if (networkInfo == null || !networkInfo.isConnected()) {
             host.notifyFinished(new NoNetworkException());
@@ -142,10 +145,10 @@ public class CMSC436Sheet {
         return true;
     }
 
-    static void showGooglePlayErrorDialog (Host host) {
+    protected void showGooglePlayErrorDialog () {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int statusCode = apiAvailability.isGooglePlayServicesAvailable(host.getActivity());
-        apiAvailability.getErrorDialog(host.getActivity(), statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
+        int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
+        apiAvailability.getErrorDialog(hostActivity, statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
     }
 
     public static float unixToSheetsEpoch(long milliseconds) {
@@ -156,8 +159,6 @@ public class CMSC436Sheet {
     public interface Host {
 
         int getRequestCode(Action action);
-
-        Activity getActivity();
 
         void notifyFinished(Exception e);
     }
