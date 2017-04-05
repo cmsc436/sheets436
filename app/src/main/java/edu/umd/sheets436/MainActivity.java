@@ -1,6 +1,5 @@
 package edu.umd.sheets436;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -23,14 +22,19 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sheet = new Sheets(this, getString(R.string.app_name), getString(R.string.CMSC436Sheet_spreadsheet_id_test_sheet));
-        sheet.writeData(Sheets.TestType.LH_TAP, "newuser", Sheets.unixToSheetsEpoch(System.currentTimeMillis()));
-        sheet.writeData(Sheets.TestType.LH_TAP, "newuser", 1.23f);
+        sheet = new Sheets(this, getString(R.string.app_name), getString(R.string.CMSC436_testing_spreadsheet));
+        sheet.writeData(Sheets.TestType.LH_TAP, getString(R.string.user_id), 1.23f);
     }
 
     @Override
     public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         sheet.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        sheet.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
@@ -57,9 +61,4 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
         Log.i(getClass().getSimpleName(), "Done");
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        sheet.onActivityResult(requestCode, resultCode, data);
-    }
 }

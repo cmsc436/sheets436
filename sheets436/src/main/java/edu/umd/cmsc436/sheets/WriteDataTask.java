@@ -53,7 +53,7 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                 if (sheet != null) {
                     for (List row : sheet) {
                         // TODO: write new column header if the cell extends past a column with a header
-                        if (row.get(0).equals(wd.userId)) {
+                        if (row.size() == 0 || row.get(0).toString().length() == 0 || row.get(0).toString().equals(wd.userId)) {
                             break;
                         }
                         rowIdx++;

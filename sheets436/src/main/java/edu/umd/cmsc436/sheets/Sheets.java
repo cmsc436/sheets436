@@ -62,6 +62,7 @@ public class Sheets {
         cache_userId = userId;
         cache_value = value;
         if (checkConnection()) {
+            // TODO: modify class field visibility (or add public getters) to clear up unnecessary params
             WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
         }
