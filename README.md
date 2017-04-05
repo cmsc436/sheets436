@@ -184,9 +184,32 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
 ## Updating the Library
 
+The recommended way of importing this library is as an `aar` file. Therefore,
+whenever there are new major changes, we'll release a new version of the `arr`
+in the [releases][release] section of this repository. Just download the new
+`aar` and follow the same instructions again from the importing section. From
+now on, we'll try to make non-breaking changes such that the changes you'll have
+to make to your legacy code will either be minimal or nonexistent.
+
+If you choose to import the direct source code of this library as a module, you
+will want to keep the source code as a git repo. As a result, you can run
+`git pull` to pull in any new changes that happen.
+
 ## Contributing
+
+If there are any bugs or unimplemented features that you notice, instead of
+being upset, consider pitching in! If you notice anything, you can submit an
+[issue][issue] describing the bug/feature. It'll help everybody if it is
+well documented.
+
+You can also feel free to contribute code by forking this repository and making
+a [pull request][pull]. If you want direct write access, that's an option too.
+Just talk to me and I'll add you to this organization.
 
 [quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
 [library]: <https://developer.android.com/studio/projects/android-library.html>
 [console]: <https://console.developers.google.com/apis/credentials>
+[release]: <https://github.com/cmsc436/sheets436/releases>
+[issue]: <https://github.com/cmsc436/sheets436/issues>
+[pull]: <https://github.com/cmsc436/sheets436/pulls>
