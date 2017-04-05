@@ -229,6 +229,12 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 }
 ```
 
+### Example Project
+
+This repository contains an example project that demonstrates basic usage of
+this library. It is a single activity that writes data for the left hand tapping
+test to a centralized test spreadsheet.
+
 ## Updating the Library
 
 The recommended way of importing this library is as an `aar` file. Therefore,
