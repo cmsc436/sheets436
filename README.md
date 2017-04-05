@@ -4,22 +4,30 @@ This is an Android Library that will allow you to write to the centralized
 Google spreadsheet. It will create an Android Archive, or `aar` file (`aar`
 files are the Android equivalent of `jar` files) which you can include as a
 dependency in your own Android project. Alternatively, you can just copy over
-the source code as its own module.
+the source code as its own module, though this is not recommended since it will
+be harder to pull in centralized changes.
 
-## Pre-Installation
+## Useful Readings
 
 1. Read the [Android Quickstart for Google Sheets][quickstart]. Reread it. Pay
 attention to the parts where you'll need to get an API token and a fingerprint.
 
-2. Read about how to [sign your app][signing]. If your release build is not
-properly signed, Google will not accept any input you make to Sheets, even if
-you previously registered an API token. There will not be any useful warning in
-this case. By familiar with all the articles I link. I am not your debugger.
+2. Read about how to [sign your app][signing]. This part is optional, but if you
+choose to create a release build, you'll have to sign the hash of your release
+key.
 
 3. Read the tutorial on creating an [Android Library][library]. This will tell
 you how to properly import the Sheets code.
 
-## Installation
+4. Check out the [Google Developer Console][console]. This is where you'll
+register any API keys. Depending on how many apps you'll write you may see this
+page only once or several times.
+
+## Setting up Authentication
+
+## Setting up the Build
+
+## Importing the Library
 
 1. Download the `aar` from the releases or clone this repository. Downloading
 the binary is probably easier, though using the source directly as a library
@@ -47,10 +55,11 @@ the app.
 
 ## Usage
 
-The library is an activity that will send data to Sheets based off the extra
-given to it as an intent. Specifically, you want to define `EXTRA_TYPE` to
-specifiy the spreadsheet, `EXTRA_USER` to define the patient ID, and
-`EXTRA_VALUE` to give the actual value to add to the sheet.
+The library abstracts the logic to write to Google Sheets. You need to provide
+the spreadsheet's ID, your user ID, the appropriate test, and the data you'd
+like to write. To use the `Sheets` class, you'll need to have your calling
+activity implement the `Sheets.Host` interface. In addition, you'll want to
+forward the `onRequestPermissionsResult` and `onActivityResult` callbacks.
 
 For example, here is a snippet to post data to the left hand tapping test.
 
@@ -60,29 +69,83 @@ import com.example.sheets436.Sheets;
 ...
 
 private void sendToSheets() {
-  Intent sheets = new Intent(this, Sheets.class);
-  String myUserId = "t10p01";
-  float avg_tapping_time = 72.4f;
+  String spreadsheetId = "1ASIF7kZHFFaUNiBndhPKTGYaQgTEbqPNfYO5DVb1Y9Y";
+  String userId = "t99p99";
+  float data = 1.23f;
 
-  sheets.putExtra(Sheets.EXTRA_TYPE, Sheets.UpdateType.LH_TAP.ordinal());
-  sheets.putExtra(Sheets.EXTRA_USER, myUserId);
-  sheets.putExtra(Sheets.EXTRA_VALUE, avg_tapping_time);
+  Sheets sheet = new Sheets(this, getString(R.string.app_name), spreadsheetId);
+  sheet.writeData(Sheets.TestType.LH_TAP, userId, data);
 }
 ```
 
-The `EXTRA_TYPE` field is an enum that will represent the type of test. If there
-are more apps to be implemented in the future, we'll add to this enum.
+The `Sheets.TestType` parameter is an enum that will represent the type of test.
+If there are more apps to be implemented in the future, we'll add to this enum.
 
 ```java
-public enum UpdateType {
-  LH_TAP, RH_TAP,
-  LH_SPIRAL, RH_SPIRAL,
-  LH_LEVEL, RH_LEVEL,
-  LH_POP, RH_POP,
-  LH_CURL, RH_CURL
+public enum TestType {
+  LH_TAP("'Tapping Test (LH)'"),
+  RH_TAP("'Tapping Test (RH)'"),
+  LH_SPIRAL("'Spiral Test (LH)'"),
+  RH_SPIRAL("'Spiral Test (RH)'"),
+  LH_LEVEL("'Level Test (LH)'"),
+  RH_LEVEL("'Level Test (RH)'"),
+  LH_POP("'Balloon Test (LH)'"),
+  RH_POP("'Balloon Test (RH)'"),
+  LH_CURL("'Curling Test (LH)'"),
+  RH_CURL("'Curling Test (RH)'");
+
+  ...
+}
+```
+
+### Callbacks
+
+Your activity must implement the `Sheets.Host` interface, which requires you to
+implement `getRequestCode` and `notifyFinished`.
+
+```java
+public interface Host {
+
+  int getRequestCode(Action action);
+
+  void notifyFinished(Exception e);
+}
+```
+
+The `getRequestCode` method requires you to define unique request codes for the
+four different request actions.
+
+```java
+public enum Action {
+  REQUEST_PERMISSIONS,
+  REQUEST_ACCOUNT_NAME,
+  REQUEST_PLAY_SERVICES,
+  REQUEST_AUTHORIZATION
+}
+```
+
+The `notifyFinished` method is a callback that triggers upon the write
+finishing. You may use this for your own convenience.
+
+### Additional Overrides
+
+You'll want to override `onRequestPermissionsResult` and `onActivityResult` to
+forward the implementation onto the `Sheets` class. Your code should be simple.
+
+```java
+@Override
+public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+  this.sheet.onRequestPermissionsResult(requestCode, permissions, grantResults);
+}
+
+@Override
+protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+  super.onActivityResult(requestCode, resultCode, data);
+  this.sheet.onActivityResult(requestCode, resultCode, data);
 }
 ```
 
 [quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
 [library]: <https://developer.android.com/studio/projects/android-library.html>
+[console]: <https://console.developers.google.com/apis/credentials>
