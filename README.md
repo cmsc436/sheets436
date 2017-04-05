@@ -27,6 +27,43 @@ page only once or several times.
 
 ## Setting up the Build
 
+You'll need to include some Google libraries in your gradle build. The library
+adds some additional dependencies, so you'll want to modify your main app's
+`build.gradle` to stop the build from breaking. Under the `dependencies` section
+of `app/build.gradle`, add the following code.
+
+```
+compile 'com.google.android.gms:play-services-auth:10.2.1'
+compile('com.google.api-client:google-api-client-android:1.22.0') {
+    exclude group: 'org.apache.httpcomponents'
+    exclude group: 'com.google.code.findbugs'
+}
+compile('com.google.apis:google-api-services-sheets:v4-rev466-1.22.0') {
+    exclude group: 'org.apache.httpcomponents'
+    exclude group: 'com.google.code.findbugs'
+}
+```
+
+Now it should look something like this.
+
+```
+dependencies {
+    ...
+
+    compile 'com.google.android.gms:play-services-auth:10.2.1'
+    compile('com.google.api-client:google-api-client-android:1.22.0') {
+        exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.code.findbugs'
+    }
+    compile('com.google.apis:google-api-services-sheets:v4-rev466-1.22.0') {
+        exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.code.findbugs'
+    }
+
+    ...
+}
+```
+
 ## Importing the Library
 
 1. Download the `aar` from the releases or clone this repository. Downloading
@@ -144,6 +181,10 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
   this.sheet.onActivityResult(requestCode, resultCode, data);
 }
 ```
+
+## Updating the Library
+
+## Contributing
 
 [quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
