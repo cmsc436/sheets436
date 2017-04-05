@@ -28,8 +28,10 @@ page only once or several times.
 This section goes over the [quickstart][quickstart]. You'll need to have the
 Google API Console to accept your app's release or debug key.
 
-1. Get the SHA1 hash of your app's signing key. For your debug key, you can
-simply get the hash from the command line.
+### Getting the Hash of your Signing Key
+
+You'll first get the SHA1 hash of your app's signing key. For your debug key,
+you can simply get the hash from the command line.
 
 ```bash
 keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore -list -v
@@ -71,6 +73,29 @@ should see the results of all your signing keys.
 
 Note that you'll probably want to just use `keytool` unless you have multiple
 signing keys, or unless you're on Windows.
+
+### Putting the Hash on the Google Developers Console
+
+Go to the [Google Sheets API Registration Page][sheets_console] to register your
+new API key. Select the appropriate fields (this part should be mostly
+straightforward).
+
+![Credential Types](images/add_credentials_1.png)
+
+After specifying the type of credentials you need, you'll be prompted to create
+an OAuth client ID. The fields you'll need to include are the signing
+certificate fingerprint (the hash we checked earlier) and the package name. The
+package name should be package in which your app resides. For example, the
+package name of the sample app included as part of this repository is
+`edu.umd.sheets436`.
+
+![Fingerprint and Package](images/add_credentials_2.png)
+
+After entering the fingerprint and package, the remaining steps should be
+straightforward, like with the early sections of the Google Console. Note that
+you will not need to download any credentials; when your apps write to Sheets,
+Google will automatically check that your hash and package match the credentials
+you entered.
 
 ## Setting up the Build
 
@@ -261,6 +286,7 @@ Just talk to me and I'll add you to this organization.
 
 [quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
+[sheets_console]: <https://console.developers.google.com/flows/enableapi?apiid=sheets.googleapis.com>
 [library]: <https://developer.android.com/studio/projects/android-library.html>
 [console]: <https://console.developers.google.com/apis/credentials>
 [release]: <https://github.com/cmsc436/sheets436/releases>
