@@ -7,25 +7,25 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import edu.umd.cmsc436.sheets.CMSC436Sheet;
+import edu.umd.cmsc436.sheets.Sheets;
 
-public class MainActivity extends AppCompatActivity implements CMSC436Sheet.Host {
+public class MainActivity extends AppCompatActivity implements Sheets.Host {
 
-    private static final int LIB_ACCOUNT_NAME_REQUEST_CODE = 1001;
-    private static final int LIB_AUTHORIZATION_REQUEST_CODE = 1002;
-    private static final int LIB_PERMISSION_REQUEST_CODE = 1003;
-    private static final int LIB_PLAY_SERVICES_REQUEST_CODE = 1004;
+    public static final int LIB_ACCOUNT_NAME_REQUEST_CODE = 1001;
+    public static final int LIB_AUTHORIZATION_REQUEST_CODE = 1002;
+    public static final int LIB_PERMISSION_REQUEST_CODE = 1003;
+    public static final int LIB_PLAY_SERVICES_REQUEST_CODE = 1004;
 
-    private CMSC436Sheet sheet;
+    private Sheets sheet;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sheet = new CMSC436Sheet(this, getString(R.string.app_name), getString(R.string.CMSC436Sheet_spreadsheet_id_test_sheet));
-        sheet.writeData(CMSC436Sheet.TestType.LH_TAP, "newuser", CMSC436Sheet.unixToSheetsEpoch(System.currentTimeMillis()));
-        sheet.writeData(CMSC436Sheet.TestType.LH_TAP, "newuser", 1.23f);
+        sheet = new Sheets(this, getString(R.string.app_name), getString(R.string.CMSC436Sheet_spreadsheet_id_test_sheet));
+        sheet.writeData(Sheets.TestType.LH_TAP, "newuser", Sheets.unixToSheetsEpoch(System.currentTimeMillis()));
+        sheet.writeData(Sheets.TestType.LH_TAP, "newuser", 1.23f);
     }
 
     @Override
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements CMSC436Sheet.Host
     }
 
     @Override
-    public int getRequestCode(CMSC436Sheet.Action action) {
+    public int getRequestCode(Sheets.Action action) {
         switch (action) {
             case REQUEST_ACCOUNT_NAME:
                 return LIB_ACCOUNT_NAME_REQUEST_CODE;
@@ -47,11 +47,6 @@ public class MainActivity extends AppCompatActivity implements CMSC436Sheet.Host
             default:
                 return -1;
         }
-    }
-
-    @Override
-    public Activity getActivity() {
-        return this;
     }
 
     @Override

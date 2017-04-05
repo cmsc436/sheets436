@@ -1,5 +1,6 @@
 package edu.umd.cmsc436.sheets;
 
+import android.app.Activity;
 import android.os.AsyncTask;
 
 import com.google.api.client.extensions.android.http.AndroidHttp;
@@ -20,13 +21,17 @@ import java.util.List;
 class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> {
 
     private com.google.api.services.sheets.v4.Sheets sheetsService = null;
+    private Sheets sheets;
     private String spreadsheetId;
-    private CMSC436Sheet.Host host;
+    private Sheets.Host host;
+    private Activity hostActivity;
 
-    WriteDataTask (GoogleAccountCredential credential, String spreadsheetId, String applicationName, CMSC436Sheet.Host host) {
+    WriteDataTask (Sheets sheets, GoogleAccountCredential credential, String spreadsheetId, String applicationName, Sheets.Host host, Activity hostActivity) {
 
         this.spreadsheetId = spreadsheetId;
         this.host = host;
+        this.hostActivity = hostActivity;
+        this.sheets = sheets;
 
         HttpTransport transport = AndroidHttp.newCompatibleTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
@@ -95,11 +100,10 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     @Override
     protected void onPostExecute (Exception e) {
         if (e != null && e instanceof GooglePlayServicesAvailabilityIOException) {
-            CMSC436Sheet.showGooglePlayErrorDialog(host);
+            sheets.showGooglePlayErrorDialog();
         } else if (e != null && e instanceof UserRecoverableAuthIOException) {
-            host.getActivity()
-                    .startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
-                            host.getRequestCode(CMSC436Sheet.Action.REQUEST_AUTHORIZATION));
+            hostActivity.startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
+                    host.getRequestCode(Sheets.Action.REQUEST_AUTHORIZATION));
         } else {
             host.notifyFinished(e);
         }
@@ -108,8 +112,7 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     private String columnToLetter(int column) {
         int temp;
         String letter = "";
-        while (column > 0)
-        {
+        while (column > 0) {
             temp = (column - 1) % 26;
             letter = ((char)(temp + 65)) + letter;
             column = (column - temp - 1) / 26;
@@ -118,11 +121,11 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     }
 
     static class WriteData {
-        CMSC436Sheet.TestType testType;
+        Sheets.TestType testType;
         String userId;
         float value;
 
-        WriteData (CMSC436Sheet.TestType testType, String userId, float value) {
+        WriteData (Sheets.TestType testType, String userId, float value) {
             this.testType = testType;
             this.userId = userId;
             this.value = value;
