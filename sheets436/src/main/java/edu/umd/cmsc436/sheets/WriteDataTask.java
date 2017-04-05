@@ -45,15 +45,15 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     protected Exception doInBackground(WriteData... params) {
         for (WriteData wd : params) {
             try {
-                ValueRange response;
-                response = sheetsService.spreadsheets().values()
+                ValueRange response = sheetsService.spreadsheets().values()
                         .get(spreadsheetId, wd.testType.toId() + "!A2:A")
                         .execute();
                 List<List<Object>> sheet = response.getValues();
                 int rowIdx = 2;
                 if (sheet != null) {
                     for (List row : sheet) {
-                        if (row.size() == 0) {
+                        // TODO: write new column header if the cell extends past a column with a header
+                        if (row.get(0).equals(wd.userId)) {
                             break;
                         }
                         rowIdx++;
