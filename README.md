@@ -25,6 +25,53 @@ page only once or several times.
 
 ## Setting up Authentication
 
+This section goes over the [quickstart][quickstart]. You'll need to have the
+Google API Console to accept your app's release or debug key.
+
+1. Get the SHA1 hash of your app's signing key. For your debug key, you can
+simply get the hash from the command line.
+
+```bash
+keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore -list -v
+```
+
+It should generate an output like this. In this case, the hash you want is
+`D5:24:6A:96:37:A3:D7:A7:76:20:99:88:02:81:22:2D:1F:AF:F5:02`.
+
+```
+Alias name: androiddebugkey
+Creation date: Feb 2, 2017
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: C=US, O=Android, CN=Android Debug
+Issuer: C=US, O=Android, CN=Android Debug
+Serial number: 1
+Valid from: Thu Feb 02 21:01:23 EST 2017 until: Sat Jan 26 21:01:23 EST 2047
+Certificate fingerprints:
+   MD5:  0A:A0:F7:A3:18:47:B6:99:26:A2:E7:3E:EF:8F:FB:DB
+   SHA1: D5:24:6A:96:37:A3:D7:A7:76:20:99:88:02:81:22:2D:1F:AF:F5:02
+   SHA256: 52:43:FA:66:D1:0F:8F:E8:D4:B0:4C:FD:BD:63:94:81:80:D0:C7:AF:D4:69:2E:5C:AF:CD:D1:5F:DA:76:1C:2D
+   Signature algorithm name: SHA1withRSA
+   Version: 1
+```
+
+If you have multiple signing keys (such as a release key), you can get all the
+hashes from the signing from via Android Studio.
+
+In the `Gradle` tab, navigate `:app -> Tasks -> android -> signingReport`. Then
+select to run the signing report.
+
+![Signing Report](images/signing_report.png)
+
+To see the results of the signing report, open up the `Gradle Console`, and you
+should see the results of all your signing keys.
+
+![Gradle Console](images/gradle_console.png)
+
+Note that you'll probably want to just use `keytool` unless you have multiple
+signing keys, or unless you're on Windows.
+
 ## Setting up the Build
 
 You'll need to include some Google libraries in your gradle build. The library
