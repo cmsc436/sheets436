@@ -89,8 +89,39 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                 .execute();
     }
 
-    private void writeToPrivate(WriteData wd) {
-        // TODO
+    private void writeToPrivate(WriteData wd) throws IOException {
+        ValueRange response = sheetsService.spreadsheets().values()
+                .get(spreadsheetId, wd.testType.toId() + "!A2:A")
+                .execute();
+        List<List<Object>> sheet = response.getValues();
+        int rowIdx = 2;
+        if (sheet != null) {
+            for (List row : sheet) {
+                if (row.size() == 0 || row.get(0).toString().length() == 0) {
+                    break;
+                }
+                rowIdx++;
+            }
+        }
+        // DON"T hardcode the E part TODO
+        String updateCell = wd.testType.toId() + "!A" + rowIdx + ":E" + rowIdx;
+        List<List<Object>> values = new ArrayList<>();
+        List<Object> row = new ArrayList<>();
+        row.add(wd.userId);
+        // TODO put a timestamp here
+        row.add(2943756);
+        for (float value : wd.trials) {
+            row.add(value);
+        }
+        values.add(row);
+
+        ValueRange valueRange = new ValueRange();
+        valueRange.setValues(values);
+
+        sheetsService.spreadsheets().values()
+                .update(spreadsheetId, updateCell, valueRange)
+                .setValueInputOption("RAW")
+                .execute();
     }
 
     @Override

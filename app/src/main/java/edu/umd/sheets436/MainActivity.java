@@ -23,7 +23,7 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sheet = new Sheets(this, getString(R.string.app_name), getString(R.string.CMSC436_testing_spreadsheet));
+        sheet = new Sheets(this, getString(R.string.app_name), getString(R.string.CMSC436_testing_spreadsheet), getString(R.string.CMSC436_private_test_spreadsheet));
         sheet.writeData(Sheets.TestType.LH_TAP, getString(R.string.user_id), 1.23f);
         wroteToCentral = false;
     }

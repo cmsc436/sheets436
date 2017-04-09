@@ -83,7 +83,7 @@ public class Sheets {
         cache_userId = userId;
         cache_trials = trials;
         if (checkConnection()) {
-            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
+            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, privateSpreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, trials));
         }
     }
