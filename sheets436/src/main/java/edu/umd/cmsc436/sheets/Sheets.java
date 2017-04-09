@@ -41,11 +41,14 @@ public class Sheets {
     private Activity hostActivity;
     private GoogleAccountCredential credentials;
 
+    private boolean cache_is_private;
     private TestType cache_type;
     private String cache_userId;
     private float cache_value;
+    private float[] cache_trials;
     private String appName;
     private String spreadsheetId;
+    private String privateSpreadsheetId;
 
     public Sheets(Host host, String appName, String spreadsheetId) {
         this.host = host;
@@ -57,7 +60,13 @@ public class Sheets {
                 Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
     }
 
+    public Sheets(Host host, String appName, String spreadsheetId, String privateSpreadsheetId) {
+        this(host, appName, spreadsheetId);
+        this.privateSpreadsheetId = privateSpreadsheetId;
+    }
+
     public void writeData (TestType testType, String userId, float value) {
+        cache_is_private = false;
         cache_type = testType;
         cache_userId = userId;
         cache_value = value;
@@ -65,6 +74,17 @@ public class Sheets {
             // TODO: modify class field visibility (or add public getters) to clear up unnecessary params
             WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
+        }
+    }
+
+    public void writeTrials (TestType testType, String userId, float[] trials) {
+        cache_is_private = true;
+        cache_type = testType;
+        cache_userId = userId;
+        cache_trials = trials;
+        if (checkConnection()) {
+            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
+            writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, trials));
         }
     }
 
@@ -99,11 +119,15 @@ public class Sheets {
         }
     }
 
-    private void resume () {
-        writeData(cache_type, cache_userId, cache_value);
+    private void resume() {
+        if (cache_is_private) {
+            writeTrials(cache_type, cache_userId, cache_trials);
+        } else {
+            writeData(cache_type, cache_userId, cache_value);
+        }
     }
 
-    private boolean checkConnection () {
+    private boolean checkConnection() {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
         int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
         if (statusCode != ConnectionResult.SUCCESS) {
