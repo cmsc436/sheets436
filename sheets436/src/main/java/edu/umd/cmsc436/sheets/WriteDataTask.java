@@ -13,8 +13,11 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Background task to write the data
@@ -103,13 +106,12 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                 rowIdx++;
             }
         }
-        // DON"T hardcode the E part TODO
-        String updateCell = wd.testType.toId() + "!A" + rowIdx + ":E" + rowIdx;
+
+        String updateCell = wd.testType.toId() + "!A" + rowIdx + ":" + columnToLetter(wd.trials.length + 2) + rowIdx;
         List<List<Object>> values = new ArrayList<>();
         List<Object> row = new ArrayList<>();
         row.add(wd.userId);
-        // TODO put a timestamp here
-        row.add(2943756);
+        row.add(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
         for (float value : wd.trials) {
             row.add(value);
         }

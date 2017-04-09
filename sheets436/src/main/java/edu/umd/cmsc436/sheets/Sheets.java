@@ -175,11 +175,6 @@ public class Sheets {
         apiAvailability.getErrorDialog(hostActivity, statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
     }
 
-    public static float unixToSheetsEpoch(long milliseconds) {
-        // days between 1/1/1900 and 1/1/1970, horribly inflexible timezone adjustment, then number of milliseconds in a day
-        return 25569 + ((milliseconds-14400000)/86400000f);
-    }
-
     public interface Host {
 
         int getRequestCode(Action action);
