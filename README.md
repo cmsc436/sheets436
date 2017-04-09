@@ -173,7 +173,7 @@ forward the `onRequestPermissionsResult` and `onActivityResult` callbacks.
 For example, here is a snippet to post data to the left hand tapping test.
 
 ```java
-import com.example.sheets436.Sheets;
+import edu.umd.cmsc436.sheets.Sheets;
 
 ...
 
