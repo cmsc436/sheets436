@@ -202,7 +202,8 @@ public class Sheets {
         LH_POP("'Balloon Test (LH)'"),
         RH_POP("'Balloon Test (RH)'"),
         LH_CURL("'Curling Test (LH)'"),
-        RH_CURL("'Curling Test (RH)'");
+        RH_CURL("'Curling Test (RH)'"),
+        HEAD_SWAY("'Swaying Test'");
 
         private final String id;
 
