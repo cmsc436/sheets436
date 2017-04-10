@@ -195,6 +195,8 @@ public class Sheets {
     public enum TestType {
         LH_TAP("'Tapping Test (LH)'"),
         RH_TAP("'Tapping Test (RH)'"),
+        LF_TAP("'Tapping Test (LF)'"),
+        RF_TAP("'Tapping Test (RF)'"),
         LH_SPIRAL("'Spiral Test (LH)'"),
         RH_SPIRAL("'Spiral Test (RH)'"),
         LH_LEVEL("'Level Test (LH)'"),
