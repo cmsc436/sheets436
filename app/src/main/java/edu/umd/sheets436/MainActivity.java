@@ -16,7 +16,6 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
     public static final int LIB_PLAY_SERVICES_REQUEST_CODE = 1004;
 
     private Sheets sheet;
-    private boolean wroteToCentral;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,7 +24,9 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
 
         sheet = new Sheets(this, getString(R.string.app_name), getString(R.string.CMSC436_testing_spreadsheet), getString(R.string.CMSC436_private_test_spreadsheet));
         sheet.writeData(Sheets.TestType.LH_TAP, getString(R.string.user_id), 1.23f);
-        wroteToCentral = false;
+
+        float[] trialData = {1.23f, 4.56f, 7.89f};
+        sheet.writeTrials(Sheets.TestType.LH_TAP, getString(R.string.user_id), trialData);
     }
 
     @Override
@@ -61,11 +62,6 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
             throw new RuntimeException(e);
         }
         Log.i(getClass().getSimpleName(), "Done");
-        if (!wroteToCentral) {
-            wroteToCentral = true;
-            float[] trialData = {1.23f, 4.56f, 7.89f};
-            sheet.writeTrials(Sheets.TestType.LH_TAP, getString(R.string.user_id), trialData);
-        }
     }
 
 }
