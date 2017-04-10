@@ -179,11 +179,19 @@ import edu.umd.cmsc436.sheets.Sheets;
 
 private void sendToSheets() {
   String spreadsheetId = "1ASIF7kZHFFaUNiBndhPKTGYaQgTEbqPNfYO5DVb1Y9Y";
+  String privateSpreadsheetId = "1MU87u75_qx35qb6TdtizRBeOH1fkO76ufzR47bfZaRQ";
   String userId = "t99p99";
-  float data = 1.23f;
+  float[] trials = {1.23f, 4.56f, 7.89f};
+  float average = 0.0f;
+  
+  for (trial : trials) {
+    average += trial;
+  }
+  average /= trials.length;
 
-  Sheets sheet = new Sheets(this, getString(R.string.app_name), spreadsheetId);
-  sheet.writeData(Sheets.TestType.LH_TAP, userId, data);
+  Sheets sheet = new Sheets(this, this, getString(R.string.app_name), spreadsheetId, privateSpreadsheetId);
+  sheet.writeData(Sheets.TestType.LH_TAP, userId, average);
+  sheet.writeTrials(Sheets.TestType.LH_TAP, userId, trials);
 }
 ```
 
@@ -201,9 +209,11 @@ public enum TestType {
   LH_POP("'Balloon Test (LH)'"),
   RH_POP("'Balloon Test (RH)'"),
   LH_CURL("'Curling Test (LH)'"),
-  RH_CURL("'Curling Test (RH)'");
+  RH_CURL("'Curling Test (RH)'"),
 
   ...
+  
+  HEAD_SWAY("'Swaying Test'");
 }
 ```
 

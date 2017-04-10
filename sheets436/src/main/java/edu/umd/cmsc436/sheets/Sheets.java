@@ -41,30 +41,45 @@ public class Sheets {
     private Activity hostActivity;
     private GoogleAccountCredential credentials;
 
+    private boolean cache_is_private;
     private TestType cache_type;
     private String cache_userId;
     private float cache_value;
+    private float[] cache_trials;
     private String appName;
     private String spreadsheetId;
+    private String privateSpreadsheetId;
 
-    public Sheets(Host host, String appName, String spreadsheetId) {
+    public Sheets(Host host, Activity hostActivity, String appName, String spreadsheetId, String privateSpreadsheetId) {
         this.host = host;
-        this.hostActivity = (Activity) host;
+        this.hostActivity = hostActivity;
         this.appName = appName;
         this.spreadsheetId = spreadsheetId;
+        this.privateSpreadsheetId = privateSpreadsheetId;
 
         credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
                 Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
     }
 
     public void writeData (TestType testType, String userId, float value) {
+        cache_is_private = false;
         cache_type = testType;
         cache_userId = userId;
         cache_value = value;
         if (checkConnection()) {
-            // TODO: modify class field visibility (or add public getters) to clear up unnecessary params
-            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
+            WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
+        }
+    }
+
+    public void writeTrials (TestType testType, String userId, float[] trials) {
+        cache_is_private = true;
+        cache_type = testType;
+        cache_userId = userId;
+        cache_trials = trials;
+        if (checkConnection()) {
+            WriteDataTask writeDataTask = new WriteDataTask(credentials, privateSpreadsheetId, appName, host, hostActivity);
+            writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, trials));
         }
     }
 
@@ -99,16 +114,20 @@ public class Sheets {
         }
     }
 
-    private void resume () {
-        writeData(cache_type, cache_userId, cache_value);
+    private void resume() {
+        if (cache_is_private) {
+            writeTrials(cache_type, cache_userId, cache_trials);
+        } else {
+            writeData(cache_type, cache_userId, cache_value);
+        }
     }
 
-    private boolean checkConnection () {
+    private boolean checkConnection() {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
         int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
         if (statusCode != ConnectionResult.SUCCESS) {
             if (apiAvailability.isUserResolvableError(statusCode)) {
-                showGooglePlayErrorDialog();
+                showGooglePlayErrorDialog(host, hostActivity);
             }
 
             return false;
@@ -145,15 +164,10 @@ public class Sheets {
         return true;
     }
 
-    protected void showGooglePlayErrorDialog () {
+    static void showGooglePlayErrorDialog(Host host, Activity hostActivity) {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
         int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
         apiAvailability.getErrorDialog(hostActivity, statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
-    }
-
-    public static float unixToSheetsEpoch(long milliseconds) {
-        // days between 1/1/1900 and 1/1/1970, horribly inflexible timezone adjustment, then number of milliseconds in a day
-        return 25569 + ((milliseconds-14400000)/86400000f);
     }
 
     public interface Host {
@@ -176,6 +190,8 @@ public class Sheets {
     public enum TestType {
         LH_TAP("'Tapping Test (LH)'"),
         RH_TAP("'Tapping Test (RH)'"),
+        LF_TAP("'Tapping Test (LF)'"),
+        RF_TAP("'Tapping Test (RF)'"),
         LH_SPIRAL("'Spiral Test (LH)'"),
         RH_SPIRAL("'Spiral Test (RH)'"),
         LH_LEVEL("'Level Test (LH)'"),
@@ -183,7 +199,8 @@ public class Sheets {
         LH_POP("'Balloon Test (LH)'"),
         RH_POP("'Balloon Test (RH)'"),
         LH_CURL("'Curling Test (LH)'"),
-        RH_CURL("'Curling Test (RH)'");
+        RH_CURL("'Curling Test (RH)'"),
+        HEAD_SWAY("'Swaying Test'");
 
         private final String id;
 
