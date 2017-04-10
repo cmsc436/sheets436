@@ -28,13 +28,11 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     private Sheets sheets;
     private String spreadsheetId;
     private Sheets.Host host;
-    private Activity hostActivity;
 
-    WriteDataTask (Sheets sheets, GoogleAccountCredential credential, String spreadsheetId, String applicationName, Sheets.Host host, Activity hostActivity) {
+    WriteDataTask (GoogleAccountCredential credential, String spreadsheetId, String applicationName, Sheets.Host host) {
 
         this.spreadsheetId = spreadsheetId;
         this.host = host;
-        this.hostActivity = hostActivity;
         this.sheets = sheets;
 
         HttpTransport transport = AndroidHttp.newCompatibleTransport();
@@ -146,9 +144,9 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     @Override
     protected void onPostExecute (Exception e) {
         if (e != null && e instanceof GooglePlayServicesAvailabilityIOException) {
-            sheets.showGooglePlayErrorDialog();
+            Sheets.showGooglePlayErrorDialog(host);
         } else if (e != null && e instanceof UserRecoverableAuthIOException) {
-            hostActivity.startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
+            Sheets.getHostActivity(host).startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
                     host.getRequestCode(Sheets.Action.REQUEST_AUTHORIZATION));
         } else {
             host.notifyFinished(e);

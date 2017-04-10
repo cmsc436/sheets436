@@ -38,7 +38,6 @@ public class Sheets {
     private final String PREF_ACCOUNT_NAME = "account name";
 
     private Host host;
-    private Activity hostActivity;
     private GoogleAccountCredential credentials;
 
     private boolean cache_is_private;
@@ -52,11 +51,10 @@ public class Sheets {
 
     public Sheets(Host host, String appName, String spreadsheetId) {
         this.host = host;
-        this.hostActivity = (Activity) host;
         this.appName = appName;
         this.spreadsheetId = spreadsheetId;
 
-        credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
+        credentials = GoogleAccountCredential.usingOAuth2(getHostActivity(host),
                 Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
     }
 
@@ -65,14 +63,17 @@ public class Sheets {
         this.privateSpreadsheetId = privateSpreadsheetId;
     }
 
+    public static Activity getHostActivity(Host host) {
+        return (Activity) host;
+    }
+
     public void writeData (TestType testType, String userId, float value) {
         cache_is_private = false;
         cache_type = testType;
         cache_userId = userId;
         cache_value = value;
         if (checkConnection()) {
-            // TODO: modify class field visibility (or add public getters) to clear up unnecessary params
-            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, spreadsheetId, appName, host, hostActivity);
+            WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
         }
     }
@@ -83,7 +84,7 @@ public class Sheets {
         cache_userId = userId;
         cache_trials = trials;
         if (checkConnection()) {
-            WriteDataTask writeDataTask = new WriteDataTask(this, credentials, privateSpreadsheetId, appName, host, hostActivity);
+            WriteDataTask writeDataTask = new WriteDataTask(credentials, privateSpreadsheetId, appName, host);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, trials));
         }
     }
@@ -102,7 +103,7 @@ public class Sheets {
                     data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
             if (accountName != null) {
                 SharedPreferences settings =
-                        hostActivity.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+                        getHostActivity(host).getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
                 settings.edit().putString(PREF_ACCOUNT_NAME, accountName).apply();
                 resume();
             }
@@ -129,10 +130,10 @@ public class Sheets {
 
     private boolean checkConnection() {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
+        int statusCode = apiAvailability.isGooglePlayServicesAvailable(getHostActivity(host));
         if (statusCode != ConnectionResult.SUCCESS) {
             if (apiAvailability.isUserResolvableError(statusCode)) {
-                showGooglePlayErrorDialog();
+                showGooglePlayErrorDialog(host);
             }
 
             return false;
@@ -141,25 +142,25 @@ public class Sheets {
         if (credentials.getSelectedAccountName() == null) {
             // if not on Marshmallow then the manifest takes care of the permission
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                    && hostActivity.checkSelfPermission(PERMISSIONS[0]) != PackageManager.PERMISSION_GRANTED) {
+                    && getHostActivity(host).checkSelfPermission(PERMISSIONS[0]) != PackageManager.PERMISSION_GRANTED) {
 
-                ActivityCompat.requestPermissions(hostActivity, PERMISSIONS, host.getRequestCode(Action.REQUEST_PERMISSIONS));
+                ActivityCompat.requestPermissions(getHostActivity(host), PERMISSIONS, host.getRequestCode(Action.REQUEST_PERMISSIONS));
 
                 return false;
             }
 
-            SharedPreferences prefs = hostActivity.getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
+            SharedPreferences prefs = getHostActivity(host).getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE);
             String accountName = prefs.getString(PREF_ACCOUNT_NAME, null);
             if (accountName != null) {
                 credentials.setSelectedAccountName(accountName);
             } else {
-                hostActivity.startActivityForResult(credentials.newChooseAccountIntent(), host.getRequestCode(Action.REQUEST_ACCOUNT_NAME));
+                getHostActivity(host).startActivityForResult(credentials.newChooseAccountIntent(), host.getRequestCode(Action.REQUEST_ACCOUNT_NAME));
                 return false;
             }
         }
 
         ConnectivityManager connectivityManager =
-                (ConnectivityManager) hostActivity.getSystemService(Context.CONNECTIVITY_SERVICE);
+                (ConnectivityManager) getHostActivity(host).getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         if (networkInfo == null || !networkInfo.isConnected()) {
             host.notifyFinished(new NoNetworkException());
@@ -169,10 +170,10 @@ public class Sheets {
         return true;
     }
 
-    protected void showGooglePlayErrorDialog () {
+    public static void showGooglePlayErrorDialog(Host host) {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int statusCode = apiAvailability.isGooglePlayServicesAvailable(hostActivity);
-        apiAvailability.getErrorDialog(hostActivity, statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
+        int statusCode = apiAvailability.isGooglePlayServicesAvailable(getHostActivity(host));
+        apiAvailability.getErrorDialog(getHostActivity(host), statusCode, host.getRequestCode(Action.REQUEST_PLAY_SERVICES)).show();
     }
 
     public interface Host {
