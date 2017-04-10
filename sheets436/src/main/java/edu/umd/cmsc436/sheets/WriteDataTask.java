@@ -25,15 +25,15 @@ import java.util.Locale;
 class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> {
 
     private com.google.api.services.sheets.v4.Sheets sheetsService = null;
-    private Sheets sheets;
     private String spreadsheetId;
     private Sheets.Host host;
+    private Activity hostActivity;
 
-    WriteDataTask (GoogleAccountCredential credential, String spreadsheetId, String applicationName, Sheets.Host host) {
+    WriteDataTask (GoogleAccountCredential credential, String spreadsheetId, String applicationName, Sheets.Host host, Activity hostActivity) {
 
         this.spreadsheetId = spreadsheetId;
         this.host = host;
-        this.sheets = sheets;
+        this.hostActivity = hostActivity;
 
         HttpTransport transport = AndroidHttp.newCompatibleTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
@@ -144,9 +144,9 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
     @Override
     protected void onPostExecute (Exception e) {
         if (e != null && e instanceof GooglePlayServicesAvailabilityIOException) {
-            Sheets.showGooglePlayErrorDialog(host);
+            Sheets.showGooglePlayErrorDialog(host, hostActivity);
         } else if (e != null && e instanceof UserRecoverableAuthIOException) {
-            Sheets.getHostActivity(host).startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
+            hostActivity.startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
                     host.getRequestCode(Sheets.Action.REQUEST_AUTHORIZATION));
         } else {
             host.notifyFinished(e);
