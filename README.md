@@ -189,7 +189,7 @@ private void sendToSheets() {
   }
   average /= trials.length;
 
-  Sheets sheet = new Sheets(this, getString(R.string.app_name), spreadsheetId, privateSpreadsheetId);
+  Sheets sheet = new Sheets(this, this, getString(R.string.app_name), spreadsheetId, privateSpreadsheetId);
   sheet.writeData(Sheets.TestType.LH_TAP, userId, average);
   sheet.writeTrials(Sheets.TestType.LH_TAP, userId, trials);
 }
