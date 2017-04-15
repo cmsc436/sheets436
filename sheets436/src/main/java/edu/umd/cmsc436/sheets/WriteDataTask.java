@@ -55,7 +55,6 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
         int rowIdx = 2;
         if (sheet != null) {
             for (List row : sheet) {
-                // TODO: write new column header if the cell extends past a column with a header
                 if (row.size() == 0 || row.get(0).toString().length() == 0 || row.get(0).toString().equals(wd.userId)) {
                     break;
                 }
@@ -69,8 +68,45 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
 
         sheet = response.getValues();
         String colIdx = "A";
+        String prevCol = "A";
         if (sheet != null) {
             colIdx = columnToLetter(sheet.get(0).size() + 1);
+            prevCol = columnToLetter(sheet.get(0).size());
+        }
+
+        if (colIdx.equals("A")) {
+            // New sheet, send initial values
+            String headerCell = wd.testType.toId() + "!" + colIdx + 1;
+            List<List<Object>> v = new ArrayList<>();
+            List<Object> row = new ArrayList<>();
+            row.add("PID");
+            row.add("Average 1");
+            v.add(row);
+            ValueRange vRange = new ValueRange();
+            vRange.setValues(v);
+            sheetsService.spreadsheets().values()
+                    .update(spreadsheetId, headerCell, vRange)
+                    .setValueInputOption("RAW").execute();
+        } else {
+            // Sheet already exists: see if it needs to get extended
+            String headerCell = wd.testType.toId() + "!" + prevCol + 1 + ":" + colIdx + 1;
+            response = sheetsService.spreadsheets().values().get(spreadsheetId, headerCell).execute();
+            sheet = response.getValues();
+            // If a the returned row has less than 2 entries, our new column has no header
+            if (sheet != null && sheet.get(0).size() < 2) {
+                int i = Integer.parseInt(sheet.get(0).get(0).toString().replaceAll("[\\D]", ""));
+                i++;
+                headerCell = wd.testType.toId() + "!" + colIdx + 1;
+                List<List<Object>> v = new ArrayList<>();
+                List<Object> row = new ArrayList<>();
+                row.add("Average " + i);
+                v.add(row);
+                ValueRange vRange = new ValueRange();
+                vRange.setValues(v);
+                sheetsService.spreadsheets().values()
+                        .update(spreadsheetId, headerCell, vRange)
+                        .setValueInputOption("RAW").execute();
+            }
         }
 
         String updateCell = wd.testType.toId() + "!" + colIdx + rowIdx;
