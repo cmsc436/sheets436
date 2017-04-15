@@ -164,6 +164,39 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                 .execute();
     }
 
+    private Exception addNewSheetAndRetry(WriteData wd) {
+        // Create request to add a new sheet
+        AddSheetRequest addReq = new AddSheetRequest();
+        addReq.setProperties(new SheetProperties().setTitle(
+                wd.testType.toId().substring(1, wd.testType.toId().length() - 1)));
+        // A bunch of stupid shit for sheets API request building
+        Request req = new Request();
+        req.setAddSheet(addReq);
+        ArrayList<Request> reqList = new ArrayList<>();
+        reqList.add(req);
+        BatchUpdateSpreadsheetRequest batchReq = new BatchUpdateSpreadsheetRequest();
+        batchReq.setRequests(reqList);
+        // Send the request to add a new sheet
+        try {
+            sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchReq).execute();
+        } catch (Exception e) {
+            return e;
+        }
+        // Retry our original write
+        try {
+            if (wd.central) {
+                this.writeToCentral(wd);
+            } else {
+                this.writeToPrivate(wd);
+            }
+        } catch (Exception e) {
+            return e;
+        }
+        // Success
+        return null;
+    }
+
+
     @Override
     protected Exception doInBackground(WriteData... params) {
         for (WriteData wd : params) {
@@ -175,30 +208,7 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                 }
             } catch (com.google.api.client.googleapis.json.GoogleJsonResponseException e) {
                 if (e.getDetails().getErrors().get(0).getMessage().contains("Unable to parse range:")) {
-                    // Create request to add a new sheet
-                    AddSheetRequest addReq = new AddSheetRequest();
-                    addReq.setProperties(new SheetProperties().setTitle(
-                            wd.testType.toId().substring(1, wd.testType.toId().length() - 1)));
-                    // A bunch of stupid shit for sheets API request building
-                    Request req = new Request();
-                    req.setAddSheet(addReq);
-                    ArrayList<Request> reqList = new ArrayList<>();
-                    reqList.add(req);
-                    BatchUpdateSpreadsheetRequest batchReq = new BatchUpdateSpreadsheetRequest();
-                    batchReq.setRequests(reqList);
-                    try {
-                        // Update the request
-                        sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchReq).execute();
-                        // Retry our original write
-                        if (wd.central) {
-                            this.writeToCentral(wd);
-                        } else {
-                            this.writeToPrivate(wd);
-                        }
-                    } catch (Exception e2) {
-                        return e2;
-                    }
-                    return null;
+                    return addNewSheetAndRetry(wd);
                 } else {
                     return e;
                 }
