@@ -10,6 +10,10 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecovera
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.sheets.v4.model.AddSheetRequest;
+import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
+import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.SheetProperties;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.util.ArrayList;
@@ -89,6 +93,28 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                         .update(spreadsheetId, updateCell, valueRange)
                         .setValueInputOption("RAW")
                         .execute();
+            } catch (com.google.api.client.googleapis.json.GoogleJsonResponseException e) {
+                if (e.getDetails().getErrors().get(0).getMessage().contains("Unable to parse range:")) {
+                    // Create request to add a new sheet
+                    AddSheetRequest addReq = new AddSheetRequest();
+                    addReq.setProperties(new SheetProperties().setTitle(
+                            wd.testType.toId().substring(1, wd.testType.toId().length() - 1)));
+                    // A bunch of stupid shit for sheets API request building
+                    Request req = new Request();
+                    req.setAddSheet(addReq);
+                    ArrayList<Request> reqList = new ArrayList<>();
+                    reqList.add(req);
+                    BatchUpdateSpreadsheetRequest batchReq = new BatchUpdateSpreadsheetRequest();
+                    batchReq.setRequests(reqList);
+                    try {
+                        sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchReq).execute();
+                    } catch (Exception e2) {
+                        return e2;
+                    }
+                    return null;
+                } else {
+                    return e;
+                }
             } catch (Exception e) {
                 return e;
             }
