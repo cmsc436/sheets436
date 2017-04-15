@@ -150,8 +150,19 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                     reqList.add(req);
                     BatchUpdateSpreadsheetRequest batchReq = new BatchUpdateSpreadsheetRequest();
                     batchReq.setRequests(reqList);
+                    // Make the request
                     try {
                         sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchReq).execute();
+                    } catch (Exception e2) {
+                        return e2;
+                    }
+                    // Retry our write
+                    try {
+                        if (wd.central) {
+                            this.writeToCentral(wd);
+                        } else {
+                            this.writeToPrivate(wd);
+                        }
                     } catch (Exception e2) {
                         return e2;
                     }
@@ -159,8 +170,7 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
                 } else {
                     return e;
                 }
-
-            catch (Exception e) {
+            } catch (Exception e) {
                 return e;
             }
         }
