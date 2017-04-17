@@ -97,6 +97,14 @@ you will not need to download any credentials; when your apps write to Sheets,
 Google will automatically check that your hash and package match the credentials
 you entered.
 
+### Enabling the Google Drive API
+
+By now, the Sheets API should be available. To be able to upload files to Google
+drive, you will also need to enable the Google Drive API, fortunately, you do
+not have to reenter the signing key and package name. Go to the [Google Drive
+section of the API Manager][drive_console] and click "ENABLE" to enable the
+Drive API.
+
 ## Setting up the Build
 
 You'll need to include some Google libraries in your gradle build. The library
@@ -297,6 +305,7 @@ Just talk to me and I'll add you to this organization.
 [quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
 [sheets_console]: <https://console.developers.google.com/flows/enableapi?apiid=sheets.googleapis.com>
+[drive_console]: <https://console.developers.google.com/apis/api/drive.googleapis.com/overview>
 [library]: <https://developer.android.com/studio/projects/android-library.html>
 [console]: <https://console.developers.google.com/apis/credentials>
 [release]: <https://github.com/cmsc436/sheets436/releases>
