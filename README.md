@@ -97,6 +97,16 @@ you will not need to download any credentials; when your apps write to Sheets,
 Google will automatically check that your hash and package match the credentials
 you entered.
 
+### Enabling the Google Drive API
+
+By now, the Sheets API should be available. To be able to upload files to Google
+drive, you will also need to enable the Google Drive API, fortunately, you do
+not have to reenter the signing key and package name. Go to the [Google Drive
+section of the API Manager][drive_console] and click "ENABLE" to enable the
+Drive API.
+
+![Enabling Drive API](images/drive_api.png)
+
 ## Setting up the Build
 
 You'll need to include some Google libraries in your gradle build. The library
@@ -217,6 +227,29 @@ public enum TestType {
 }
 ```
 
+Here is a snippet that uploads an image to Google Drive. The method takes in the
+image as a bitmap, and you specify the folder and image name for the upload.
+
+```java
+import edu.umd.cmsc436.sheets.Sheets;
+
+...
+
+private void sendToSheets() {
+  String spreadsheetId = "1ASIF7kZHFFaUNiBndhPKTGYaQgTEbqPNfYO5DVb1Y9Y";
+  String privateSpreadsheetId = "1MU87u75_qx35qb6TdtizRBeOH1fkO76ufzR47bfZaRQ";
+  Sheets sheet = new Sheets(this, this, getString(R.string.app_name), spreadsheetId, privateSpreadsheetId);
+
+  String folderId = "0B3RViSRC0aoYVDN6MWZUb1RDSVU";
+  String uploadName = "This is the name of the upload as seen on Drive."
+  Bitmap imageToUpload = null;
+  
+  /* Code to set up the bitmap goes here. */
+  
+  sheet.uploadToDrive(folderId, uploadName, imageToUpload);
+}
+```
+
 ### Callbacks
 
 Your activity must implement the `Sheets.Host` interface, which requires you to
@@ -232,14 +265,15 @@ public interface Host {
 ```
 
 The `getRequestCode` method requires you to define unique request codes for the
-four different request actions.
+five different request actions.
 
 ```java
 public enum Action {
   REQUEST_PERMISSIONS,
   REQUEST_ACCOUNT_NAME,
   REQUEST_PLAY_SERVICES,
-  REQUEST_AUTHORIZATION
+  REQUEST_AUTHORIZATION,
+  REQUEST_CONNECTION_RESOLUTION
 }
 ```
 
@@ -297,6 +331,7 @@ Just talk to me and I'll add you to this organization.
 [quickstart]: <https://developers.google.com/sheets/api/quickstart/android>
 [signing]: <https://developer.android.com/studio/publish/app-signing.html>
 [sheets_console]: <https://console.developers.google.com/flows/enableapi?apiid=sheets.googleapis.com>
+[drive_console]: <https://console.developers.google.com/apis/api/drive.googleapis.com/overview>
 [library]: <https://developer.android.com/studio/projects/android-library.html>
 [console]: <https://console.developers.google.com/apis/credentials>
 [release]: <https://github.com/cmsc436/sheets436/releases>
