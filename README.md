@@ -265,14 +265,15 @@ public interface Host {
 ```
 
 The `getRequestCode` method requires you to define unique request codes for the
-four different request actions.
+five different request actions.
 
 ```java
 public enum Action {
   REQUEST_PERMISSIONS,
   REQUEST_ACCOUNT_NAME,
   REQUEST_PLAY_SERVICES,
-  REQUEST_AUTHORIZATION
+  REQUEST_AUTHORIZATION,
+  REQUEST_CONNECTION_RESOLUTION
 }
 ```
 
