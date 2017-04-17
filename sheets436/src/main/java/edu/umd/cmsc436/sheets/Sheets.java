@@ -5,17 +5,23 @@ import android.accounts.AccountManager;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.drive.Drive;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.sheets.v4.SheetsScopes;
@@ -28,7 +34,7 @@ import static android.app.Activity.RESULT_OK;
  * Class to instantiate and hook into parts of the normal app
  */
 
-public class Sheets {
+public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private final String[] PERMISSIONS = new String[] {
             Manifest.permission.GET_ACCOUNTS
@@ -41,14 +47,22 @@ public class Sheets {
     private Activity hostActivity;
     private GoogleAccountCredential credentials;
 
-    private boolean cache_is_private;
+    private ServiceType cache_service;
     private TestType cache_type;
     private String cache_userId;
+    private String cache_folderId;
+    private String cache_fileName;
+    private Bitmap cache_image;
     private float cache_value;
     private float[] cache_trials;
     private String appName;
     private String spreadsheetId;
     private String privateSpreadsheetId;
+
+    private enum ServiceType {
+        WriteData,
+        WriteTrials
+    }
 
     public Sheets(Host host, Activity hostActivity, String appName, String spreadsheetId, String privateSpreadsheetId) {
         this.host = host;
@@ -62,7 +76,7 @@ public class Sheets {
     }
 
     public void writeData (TestType testType, String userId, float value) {
-        cache_is_private = false;
+        cache_service = ServiceType.WriteData;
         cache_type = testType;
         cache_userId = userId;
         cache_value = value;
@@ -73,7 +87,7 @@ public class Sheets {
     }
 
     public void writeTrials (TestType testType, String userId, float[] trials) {
-        cache_is_private = true;
+        cache_service = ServiceType.WriteTrials;
         cache_type = testType;
         cache_userId = userId;
         cache_trials = trials;
@@ -81,6 +95,46 @@ public class Sheets {
             WriteDataTask writeDataTask = new WriteDataTask(credentials, privateSpreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, trials));
         }
+    }
+
+    public void uploadToDrive(String folderId, String fileName, Bitmap image) {
+        cache_folderId = folderId;
+        cache_fileName = fileName;
+        cache_image = image;
+
+        new GoogleApiClient.Builder(hostActivity)
+                .addApi(Drive.API)
+                .addScope(Drive.SCOPE_FILE)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build()
+                .connect();
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        launchUploadToDriveTask();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        if (connectionResult.hasResolution()) {
+            try {
+                connectionResult.startResolutionForResult(hostActivity, host.getRequestCode(Action.REQUEST_CONNECTION_RESOLUTION));
+            } catch (IntentSender.SendIntentException e) {
+                // Unable to resolve, message user appropriately
+                host.notifyFinished(e);
+            }
+        }
+    }
+
+    private void launchUploadToDriveTask() {
+        UploadToDriveTask uploadToDriveTask = new UploadToDriveTask(credentials, appName, host, hostActivity);
+        uploadToDriveTask.execute(new UploadToDriveTask.DrivePayload(cache_folderId, cache_fileName, cache_image));
     }
 
     public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
@@ -111,14 +165,23 @@ public class Sheets {
             if (resultCode == RESULT_OK) {
                 resume();
             }
+        } else if (requestCode == host.getRequestCode(Action.REQUEST_CONNECTION_RESOLUTION)) {
+            if (resultCode == RESULT_OK) {
+                launchUploadToDriveTask();
+            }
         }
     }
 
     private void resume() {
-        if (cache_is_private) {
-            writeTrials(cache_type, cache_userId, cache_trials);
-        } else {
-            writeData(cache_type, cache_userId, cache_value);
+        switch (cache_service) {
+            case WriteData:
+                writeData(cache_type, cache_userId, cache_value);
+                break;
+            case WriteTrials:
+                writeTrials(cache_type, cache_userId, cache_trials);
+                break;
+            default:
+                break;
         }
     }
 
@@ -181,7 +244,8 @@ public class Sheets {
         REQUEST_PERMISSIONS,
         REQUEST_ACCOUNT_NAME,
         REQUEST_PLAY_SERVICES,
-        REQUEST_AUTHORIZATION
+        REQUEST_AUTHORIZATION,
+        REQUEST_CONNECTION_RESOLUTION
     }
 
     @SuppressWarnings("WeakerAccess")
