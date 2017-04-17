@@ -105,6 +105,8 @@ not have to reenter the signing key and package name. Go to the [Google Drive
 section of the API Manager][drive_console] and click "ENABLE" to enable the
 Drive API.
 
+![Enabling Drive API](images/drive_api.png)
+
 ## Setting up the Build
 
 You'll need to include some Google libraries in your gradle build. The library
