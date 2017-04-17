@@ -227,6 +227,29 @@ public enum TestType {
 }
 ```
 
+Here is a snippet that uploads an image to Google Drive. The method takes in the
+image as a bitmap, and you specify the folder and image name for the upload.
+
+```java
+import edu.umd.cmsc436.sheets.Sheets;
+
+...
+
+private void sendToSheets() {
+  String spreadsheetId = "1ASIF7kZHFFaUNiBndhPKTGYaQgTEbqPNfYO5DVb1Y9Y";
+  String privateSpreadsheetId = "1MU87u75_qx35qb6TdtizRBeOH1fkO76ufzR47bfZaRQ";
+  Sheets sheet = new Sheets(this, this, getString(R.string.app_name), spreadsheetId, privateSpreadsheetId);
+
+  String folderId = "0B3RViSRC0aoYVDN6MWZUb1RDSVU";
+  String uploadName = "This is the name of the upload as seen on Drive."
+  Bitmap imageToUpload = null;
+  
+  /* Code to set up the bitmap goes here. */
+  
+  sheet.uploadToDrive(folderId, uploadName, imageToUpload);
+}
+```
+
 ### Callbacks
 
 Your activity must implement the `Sheets.Host` interface, which requires you to
