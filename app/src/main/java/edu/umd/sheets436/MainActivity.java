@@ -108,8 +108,12 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
                 sheet.writeTrials(Sheets.TestType.RH_CURL, getString(R.string.user_id), trialData);
                 break;
             case "Sway":
-                sheet.writeData(Sheets.TestType.HEAD_SWAY, getString(R.string.user_id), f);
-                sheet.writeTrials(Sheets.TestType.HEAD_SWAY, getString(R.string.user_id), trialData);
+                sheet.writeData(Sheets.TestType.SWAY_OPEN_APART, getString(R.string.user_id), f);
+                sheet.writeTrials(Sheets.TestType.SWAY_OPEN_APART, getString(R.string.user_id), trialData);
+                sheet.writeData(Sheets.TestType.SWAY_OPEN_TOGETHER, getString(R.string.user_id), f);
+                sheet.writeTrials(Sheets.TestType.SWAY_OPEN_TOGETHER, getString(R.string.user_id), trialData);
+                sheet.writeData(Sheets.TestType.SWAY_CLOSED, getString(R.string.user_id), f);
+                sheet.writeTrials(Sheets.TestType.SWAY_CLOSED, getString(R.string.user_id), trialData);
                 break;
             case "Walk (Indoors)":
                 sheet.writeData(Sheets.TestType.INDOOR_WALKING, getString(R.string.user_id), f);
