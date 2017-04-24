@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="test_array">
+        <item>Tap (Hands)</item>
+        <item>Tap (Feet)</item>
+        <item>Spiral</item>
+        <item>Level</item>
+        <item>Balloon</item>
+        <item>Curl</item>
+        <item>Sway</item>
+        <item>Walk (Indoors)</item>
+    </string-array>
+</resources>
