@@ -267,7 +267,8 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         SWAY_OPEN_APART("'Swaying Test (Legs apart eyes open)'"),
         SWAY_OPEN_TOGETHER("'Swaying Test (Legs closed eyes open)'"),
         SWAY_CLOSED("'Swaying Test (Legs closed eyes closed)'"),
-        INDOOR_WALKING("'Indoor Walking Test");
+        INDOOR_WALKING("'Indoor Walking Test'"),
+        OUTDOOR_WALKING("'Outdoor Walking Test'");
 
         private final String id;
 
