@@ -27,6 +27,7 @@ import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.sheets.v4.SheetsScopes;
 
 import java.util.Collections;
+import java.util.List;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -61,7 +62,8 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
 
     private enum ServiceType {
         WriteData,
-        WriteTrials
+        WriteTrials,
+        FetchPrescription,
     }
 
     public Sheets(Host host, Activity hostActivity, String appName, String spreadsheetId, String privateSpreadsheetId) {
@@ -83,6 +85,18 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         if (checkConnection()) {
             WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
+        }
+    }
+
+    public void fetchPrescription (String patientId) {
+        cache_service = ServiceType.FetchPrescription;
+        cache_type = null;
+        cache_userId = patientId;
+        cache_value = 0;
+
+        if (checkConnection()) {
+            ReadPrescriptionTask readPrescriptionTask = new ReadPrescriptionTask(credentials, spreadsheetId, appName, host, hostActivity);
+            readPrescriptionTask.execute(patientId);
         }
     }
 
@@ -180,6 +194,9 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
             case WriteTrials:
                 writeTrials(cache_type, cache_userId, cache_trials);
                 break;
+            case FetchPrescription:
+                fetchPrescription(cache_userId);
+                break;
             default:
                 break;
         }
@@ -238,6 +255,8 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         int getRequestCode(Action action);
 
         void notifyFinished(Exception e);
+
+        void onPrescriptionReady (List<String> result);
     }
 
     public enum Action {

@@ -15,6 +15,7 @@ import android.widget.Spinner;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.List;
 
 import edu.umd.cmsc436.sheets.Sheets;
 
@@ -159,6 +160,11 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
             throw new RuntimeException(e);
         }
         Log.i(getClass().getSimpleName(), "Done");
+    }
+
+    @Override
+    public void onPrescriptionReady(List<String> result) {
+
     }
 
 }
