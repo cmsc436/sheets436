@@ -70,7 +70,7 @@ public class ReadPrescriptionTask extends AsyncTask<String, Void, Exception> {
                 }
 
                 ValueRange vals = sheetsService.spreadsheets().values()
-                        .get(spreadsheetId, "Sheet1!A" + cur_row + ":M" + cur_row)
+                        .get(spreadsheetId, "Sheet1!A" + cur_row + ":N" + cur_row)
                         .execute();
 
                 sheet = vals.getValues();
