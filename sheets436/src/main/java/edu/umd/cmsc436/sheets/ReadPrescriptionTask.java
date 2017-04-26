@@ -27,11 +27,18 @@ public class ReadPrescriptionTask extends AsyncTask<String, Void, Exception> {
     private Sheets.Host host;
     private Activity hostActivity;
     private List<String> results;
+    private Sheets.OnPrescriptionFetchedListener mListener;
 
-    ReadPrescriptionTask (GoogleAccountCredential credential, String spreadsheetId, String applicationName, Sheets.Host host, Activity hostActivity) {
+    ReadPrescriptionTask (GoogleAccountCredential credential,
+                          String spreadsheetId,
+                          String applicationName,
+                          Sheets.Host host,
+                          Activity hostActivity,
+                          Sheets.OnPrescriptionFetchedListener listener) {
         this.spreadsheetId = spreadsheetId;
         this.host = host;
         this.hostActivity = hostActivity;
+        mListener = listener;
 
         HttpTransport transport = AndroidHttp.newCompatibleTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
@@ -93,7 +100,7 @@ public class ReadPrescriptionTask extends AsyncTask<String, Void, Exception> {
             hostActivity.startActivityForResult(((UserRecoverableAuthIOException) e).getIntent(),
                     host.getRequestCode(Sheets.Action.REQUEST_AUTHORIZATION));
         } else {
-            host.onPrescriptionReady(results);
+            mListener.onPrescriptionFetched(results);
         }
     }
 }

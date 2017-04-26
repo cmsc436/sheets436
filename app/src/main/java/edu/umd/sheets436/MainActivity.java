@@ -161,10 +161,4 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
         }
         Log.i(getClass().getSimpleName(), "Done");
     }
-
-    @Override
-    public void onPrescriptionReady(List<String> result) {
-
-    }
-
 }

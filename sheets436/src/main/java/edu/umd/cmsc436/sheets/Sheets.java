@@ -56,6 +56,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private Bitmap cache_image;
     private float cache_value;
     private float[] cache_trials;
+    private OnPrescriptionFetchedListener cache_listener;
     private String appName;
     private String spreadsheetId;
     private String privateSpreadsheetId;
@@ -88,14 +89,15 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         }
     }
 
-    public void fetchPrescription (String patientId) {
+    public void fetchPrescription (String patientId, OnPrescriptionFetchedListener listener) {
         cache_service = ServiceType.FetchPrescription;
         cache_type = null;
         cache_userId = patientId;
         cache_value = 0;
+        cache_listener = listener;
 
         if (checkConnection()) {
-            ReadPrescriptionTask readPrescriptionTask = new ReadPrescriptionTask(credentials, spreadsheetId, appName, host, hostActivity);
+            ReadPrescriptionTask readPrescriptionTask = new ReadPrescriptionTask(credentials, spreadsheetId, appName, host, hostActivity, listener);
             readPrescriptionTask.execute(patientId);
         }
     }
@@ -195,7 +197,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 writeTrials(cache_type, cache_userId, cache_trials);
                 break;
             case FetchPrescription:
-                fetchPrescription(cache_userId);
+                fetchPrescription(cache_userId, cache_listener);
                 break;
             default:
                 break;
@@ -255,8 +257,10 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         int getRequestCode(Action action);
 
         void notifyFinished(Exception e);
+    }
 
-        void onPrescriptionReady (List<String> result);
+    public interface OnPrescriptionFetchedListener {
+        void onPrescriptionFetched (@Nullable List<String> raw_data);
     }
 
     public enum Action {
