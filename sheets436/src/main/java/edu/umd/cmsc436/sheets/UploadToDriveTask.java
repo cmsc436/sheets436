@@ -19,9 +19,9 @@ import java.util.Collections;
 
 public class UploadToDriveTask extends AsyncTask<UploadToDriveTask.DrivePayload, Void, Exception> {
 
-    private com.google.api.services.drive.Drive driveService = null;
+    protected com.google.api.services.drive.Drive driveService = null;
     private Sheets.Host host;
-    private Activity hostActivity;
+    protected Activity hostActivity;
 
     public UploadToDriveTask(GoogleAccountCredential credential, String applicationName, Sheets.Host host, Activity hostActivity) {
 

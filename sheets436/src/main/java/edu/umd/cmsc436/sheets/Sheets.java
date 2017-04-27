@@ -21,6 +21,7 @@ import android.util.Log;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.drive.Drive;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
@@ -28,6 +29,7 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -56,15 +58,19 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private Bitmap cache_image;
     private float cache_value;
     private float[] cache_trials;
-    private OnPrescriptionFetchedListener cache_listener;
+    private OnPrescriptionFetchedListener cache_prescriptionlistener;
     private String appName;
     private String spreadsheetId;
     private String privateSpreadsheetId;
+
+    private Map<String, Float> cache_versionmap;
+    private DriveApkTask.OnFinishListener cache_finishlistener;
 
     private enum ServiceType {
         WriteData,
         WriteTrials,
         FetchPrescription,
+        FetchApks,
     }
 
     public Sheets(Host host, Activity hostActivity, String appName, String spreadsheetId, String privateSpreadsheetId) {
@@ -94,12 +100,37 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         cache_type = null;
         cache_userId = patientId;
         cache_value = 0;
-        cache_listener = listener;
+        cache_prescriptionlistener = listener;
 
         if (checkConnection()) {
             ReadPrescriptionTask readPrescriptionTask = new ReadPrescriptionTask(credentials, spreadsheetId, appName, host, hostActivity, listener);
             readPrescriptionTask.execute(patientId);
         }
+    }
+
+    public void fetchApks (String folderId, Map<String, Float> versionMap, DriveApkTask.OnFinishListener listener) {
+        cache_service = ServiceType.FetchApks;
+        cache_folderId = folderId;
+        cache_versionmap = versionMap;
+        cache_finishlistener = listener;
+
+        new GoogleApiClient.Builder(hostActivity)
+                .addApi(Drive.API)
+                .addScope(new Scope("https://www.googleapis.com/auth/drive.readonly"))
+                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+                    @Override
+                    public void onConnected(@Nullable Bundle bundle) {
+                        launchDriveApkTask();
+                    }
+
+                    @Override
+                    public void onConnectionSuspended(int i) {
+                        // nothing
+                    }
+                })
+                .addOnConnectionFailedListener(this)
+                .build()
+                .connect();
     }
 
     public void writeTrials (TestType testType, String userId, float[] trials) {
@@ -125,6 +156,15 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 .addOnConnectionFailedListener(this)
                 .build()
                 .connect();
+    }
+
+    public void launchDriveApkTask () {
+        cache_service = null;
+        DriveApkTask driveApkTask = new DriveApkTask(credentials, appName, host, hostActivity);
+        driveApkTask
+                .setVersionMap(cache_versionmap)
+                .setOnFinishListener(cache_finishlistener)
+                .execute(new UploadToDriveTask.DrivePayload(cache_folderId, null, null));
     }
 
     @Override
@@ -183,7 +223,11 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
             }
         } else if (requestCode == host.getRequestCode(Action.REQUEST_CONNECTION_RESOLUTION)) {
             if (resultCode == RESULT_OK) {
-                launchUploadToDriveTask();
+                if (cache_service == ServiceType.FetchApks) {
+                    launchDriveApkTask();
+                } else {
+                    launchUploadToDriveTask();
+                }
             }
         }
     }
@@ -197,7 +241,10 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 writeTrials(cache_type, cache_userId, cache_trials);
                 break;
             case FetchPrescription:
-                fetchPrescription(cache_userId, cache_listener);
+                fetchPrescription(cache_userId, cache_prescriptionlistener);
+                break;
+            case FetchApks:
+                fetchApks(cache_folderId, cache_versionmap, cache_finishlistener);
                 break;
             default:
                 break;
