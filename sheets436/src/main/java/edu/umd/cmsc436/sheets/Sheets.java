@@ -185,6 +185,14 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 // Unable to resolve, message user appropriately
                 host.notifyFinished(e);
             }
+        } else if (connectionResult.getErrorCode() == ConnectionResult.INTERNAL_ERROR) {
+            // API reference suggests retrying.  This works for my problems as of 27 April 20:50,
+            // but I actually need to redo some of the authentication stuff proper like
+            // (forcing a broader scope with new Scope("...") is pretty much cheating
+            // and the correct way makes storing accounts easier/possible)
+            resume();
+        } else {
+            Log.e(getClass().getCanonicalName(), "Connection error " + connectionResult.getErrorCode() + ": " + connectionResult.getErrorMessage());
         }
     }
 
