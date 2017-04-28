@@ -45,8 +45,6 @@ public class DriveApkTask extends UploadToDriveTask {
         }
 
         String folderId = params[0].folderId;
-        Map<String, Float> max_versions = new HashMap<>();
-        Map<String, com.google.api.services.drive.model.File> type_to_file = new HashMap<>();
 
         // list all files
         // TODO only gets the first 100 files, but I'm not going to worry about > 100 APKs right now
@@ -60,34 +58,31 @@ public class DriveApkTask extends UploadToDriveTask {
                 return new Exception("files null");
             }
 
-            // get max versions
+            // Find the latest APKs of the types given to us
+            Map<String, com.google.api.services.drive.model.File> filesToGet = new HashMap<>();
             for (com.google.api.services.drive.model.File f : realFiles) {
-                String name = f.getName();
-                float version = getVersionFromName(name);
-                if (!max_versions.containsKey(name) || version > max_versions.get(name)) {
-                    max_versions.put(name, version);
-                    type_to_file.put(name.substring(0, name.lastIndexOf('-')), f);
+                String type = getType(f);
+                if (mVersionMap.keySet().contains(type)) {
+                    float version = getVersion(f);
+                    if (version > mVersionMap.get(type)) {
+                        Log.i(getClass().getCanonicalName(), "Found newer " + type + " than " + mVersionMap.get(type) + ": " + version);
+                        mVersionMap.put(type, version);
+                        filesToGet.put(type, f);
+                    }
                 }
             }
 
-            // find which to actually download
-            List<com.google.api.services.drive.model.File> toDownload = new ArrayList<>();
+            Log.i(getClass().getCanonicalName(), "Number of files to download: " + filesToGet.keySet().size());
 
-            for (String fname : max_versions.keySet()) {
-                Log.i(getClass().getCanonicalName(), "max version: " + fname);
-                String type = fname.substring(0, fname.lastIndexOf('-'));
-                if (mVersionMap.containsKey(type) && mVersionMap.get(type) < max_versions.get(fname)) {
-                    toDownload.add(type_to_file.get(type));
-                }
-            }
-
+            // Actually download
             List<File> results = new ArrayList<>();
-            Log.i(getClass().getCanonicalName(), "#files to download: " + toDownload.size());
-            for (com.google.api.services.drive.model.File f : toDownload) {
-                File outputFile = File.createTempFile(f.getName(), "", hostActivity.getCacheDir());
-                FileOutputStream fileOutputStream = new FileOutputStream(outputFile);
+            for (com.google.api.services.drive.model.File f : filesToGet.values()) {
+                File tempFile = File.createTempFile(removeExtension(f), ".apk", hostActivity.getCacheDir());
+                FileOutputStream fileOutputStream = new FileOutputStream(tempFile);
+
                 driveService.files().get(f.getId()).executeMediaAndDownloadTo(fileOutputStream);
-                results.add(outputFile);
+
+                results.add(tempFile);
             }
 
             if (mListener != null) {
@@ -100,7 +95,8 @@ public class DriveApkTask extends UploadToDriveTask {
         return null;
     }
 
-    private float getVersionFromName(String name) {
+    private float getVersion(com.google.api.services.drive.model.File file) {
+        String name = file.getName();
         String version = name.substring(name.lastIndexOf('-') + 1, name.lastIndexOf('.'));
 
         try {
@@ -108,6 +104,16 @@ public class DriveApkTask extends UploadToDriveTask {
         } catch (NumberFormatException nfe) {
             return -1;
         }
+    }
+
+    private String getType(com.google.api.services.drive.model.File file) {
+        String name = file.getName();
+        return name.substring(0, name.lastIndexOf('-'));
+    }
+
+    private String removeExtension (com.google.api.services.drive.model.File file) {
+        String name = file.getName();
+        return name.substring(0, name.lastIndexOf('.'));
     }
 
     public interface OnFinishListener {
