@@ -21,13 +21,13 @@ import android.util.Log;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.drive.Drive;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
+import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.sheets.v4.SheetsScopes;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -81,7 +81,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         this.privateSpreadsheetId = privateSpreadsheetId;
 
         credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
-                Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
+                Arrays.asList(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE)).setBackOff(new ExponentialBackOff());
     }
 
     public void writeData (TestType testType, String userId, float value) {
@@ -114,23 +114,9 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         cache_versionmap = versionMap;
         cache_finishlistener = listener;
 
-        new GoogleApiClient.Builder(hostActivity)
-                .addApi(Drive.API)
-                .addScope(new Scope("https://www.googleapis.com/auth/drive.readonly"))
-                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-                    @Override
-                    public void onConnected(@Nullable Bundle bundle) {
-                        launchDriveApkTask();
-                    }
-
-                    @Override
-                    public void onConnectionSuspended(int i) {
-                        // nothing
-                    }
-                })
-                .addOnConnectionFailedListener(this)
-                .build()
-                .connect();
+        if (checkConnection()) {
+            launchDriveApkTask();
+        }
     }
 
     public void writeTrials (TestType testType, String userId, float[] trials) {
