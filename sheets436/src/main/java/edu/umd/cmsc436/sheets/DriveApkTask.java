@@ -75,14 +75,14 @@ public class DriveApkTask extends UploadToDriveTask {
             Log.i(getClass().getCanonicalName(), "Number of files to download: " + filesToGet.keySet().size());
 
             // Actually download
-            List<File> results = new ArrayList<>();
+            Map<File, Float> results = new HashMap<>();
             for (com.google.api.services.drive.model.File f : filesToGet.values()) {
                 File tempFile = File.createTempFile(removeExtension(f), ".apk", hostActivity.getCacheDir());
                 FileOutputStream fileOutputStream = new FileOutputStream(tempFile);
 
                 driveService.files().get(f.getId()).executeMediaAndDownloadTo(fileOutputStream);
 
-                results.add(tempFile);
+                results.put(tempFile, getVersion(f));
             }
 
             if (mListener != null) {
@@ -117,6 +117,6 @@ public class DriveApkTask extends UploadToDriveTask {
     }
 
     public interface OnFinishListener {
-        void onFinish(List<File> tempFiles);
+        void onFinish(Map<File, Float> tempFiles);
     }
 }
