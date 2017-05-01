@@ -124,6 +124,11 @@ compile('com.google.apis:google-api-services-sheets:v4-rev466-1.22.0') {
     exclude group: 'org.apache.httpcomponents'
     exclude group: 'com.google.code.findbugs'
 }
+compile 'com.google.android.gms:play-services-drive:10.2.1'
+compile('com.google.apis:google-api-services-drive:v3-rev69-1.22.0') {
+    exclude group: 'org.apache.httpcomponents'
+    exclude group: 'com.google.code.findbugs'
+}
 ```
 
 Now it should look something like this.
@@ -138,6 +143,11 @@ dependencies {
         exclude group: 'com.google.code.findbugs'
     }
     compile('com.google.apis:google-api-services-sheets:v4-rev466-1.22.0') {
+        exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.code.findbugs'
+    }
+    compile 'com.google.android.gms:play-services-drive:10.2.1'
+    compile('com.google.apis:google-api-services-drive:v3-rev69-1.22.0') {
         exclude group: 'org.apache.httpcomponents'
         exclude group: 'com.google.code.findbugs'
     }
