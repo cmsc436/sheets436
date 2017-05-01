@@ -178,14 +178,14 @@ class WriteDataTask extends AsyncTask<WriteDataTask.WriteData, Void, Exception> 
         } catch (Exception e) {
             return e;
         }
-        int sheetID = 0;
+        int sheetID = -1;
         for (Sheet sheet : response.getSheets()) {
             if (sheet.getProperties().getTitle().equals(wd.testType.toId().substring(1,
                     wd.testType.toId().length()-1))) {
                 sheetID = sheet.getProperties().getSheetId();
             }
         }
-        if (sheetID != 0) {
+        if (sheetID != -1) {
             // Double the sheet size
             DimensionRange range = new DimensionRange();
             range.setSheetId(sheetID);
