@@ -67,6 +67,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private DriveApkTask.OnFinishListener cache_finishlistener;
 
     private enum ServiceType {
+        UploadPhoto,
         WriteData,
         WriteTrials,
         FetchPrescription,
@@ -131,17 +132,20 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     }
 
     public void uploadToDrive(String folderId, String fileName, Bitmap image) {
+        cache_service = ServiceType.UploadPhoto;
         cache_folderId = folderId;
         cache_fileName = fileName;
         cache_image = image;
 
-        new GoogleApiClient.Builder(hostActivity)
-                .addApi(Drive.API)
-                .addScope(Drive.SCOPE_FILE)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build()
-                .connect();
+        if (checkConnection()) {
+            new GoogleApiClient.Builder(hostActivity)
+                    .addApi(Drive.API)
+                    .addScope(Drive.SCOPE_FILE)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .build()
+                    .connect();
+        }
     }
 
     public void launchDriveApkTask () {
@@ -234,6 +238,8 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
             case WriteTrials:
                 writeTrials(cache_type, cache_userId, cache_trials);
                 break;
+            case UploadPhoto:
+                uploadToDrive(cache_folderId, cache_fileName, cache_image);
             case FetchPrescription:
                 fetchPrescription(cache_userId, cache_prescriptionlistener);
                 break;
