@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Read a prescription object and return a row of data in the form of a list of strings to interpret
+ * Return the row of data for a given username in the form of a list of strings to interpret
  */
 
 public class ReadPrescriptionTask extends AsyncTask<String, Void, Exception> {
