@@ -148,7 +148,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         }
     }
 
-    public void launchDriveApkTask () {
+    private void launchDriveApkTask () {
         cache_service = null;
         DriveApkTask driveApkTask = new DriveApkTask(credentials, appName, host, hostActivity);
         driveApkTask
@@ -176,10 +176,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 host.notifyFinished(e);
             }
         } else if (connectionResult.getErrorCode() == ConnectionResult.INTERNAL_ERROR) {
-            // API reference suggests retrying.  This works for my problems as of 27 April 20:50,
-            // but I actually need to redo some of the authentication stuff proper like
-            // (forcing a broader scope with new Scope("...") is pretty much cheating
-            // and the correct way makes storing accounts easier/possible)
+            // API reference suggests retrying.
             resume();
         } else {
             Log.e(getClass().getCanonicalName(), "Connection error " + connectionResult.getErrorCode() + ": " + connectionResult.getErrorMessage());
