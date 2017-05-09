@@ -48,24 +48,8 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
         spinner.setAdapter(adapter);
 
         sheet = new Sheets(this, this, getString(R.string.app_name), getString(R.string.CMSC436_testing_spreadsheet), getString(R.string.CMSC436_private_test_spreadsheet));
-
-        // The next two lines of code allows network calls on the UI thread. Do not do this in a
-        // real app. I'm just doing this for ease of coding/reading, since this is a sample of how
-        // to use the API.
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
-
-        // Grab some random picture from the Internet.
-        Bitmap bitmap = null;
-        Bitmap otherBitmap = null;
-        try {
-            URL url = new URL("https://www.umiacs.umd.edu/sites/default/files/styles/medium/public/web-Memon09.jpg");
-            bitmap = BitmapFactory.decodeStream((InputStream) url.getContent());
-            url = new URL("https://developer.android.com/_static/c4075bed68/images/android/touchicon-180.png");
-            otherBitmap = BitmapFactory.decodeStream((InputStream) url.getContent());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Bitmap bitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.atif);
+        Bitmap otherBitmap = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.icon);
 
         sheet.uploadToDrive(getString(R.string.CMSC436_test_folder), getString(R.string.image_name), bitmap);
         sheet.uploadToDrive(getString(R.string.CMSC436_test_folder), getString(R.string.other_image_name), otherBitmap);
