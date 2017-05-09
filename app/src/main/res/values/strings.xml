@@ -6,5 +6,6 @@
     <string name="CMSC436_test_folder">0B3RViSRC0aoYVDN6MWZUb1RDSVU</string>
     <string name="user_id">Your user ID belongs here!</string>
     <string name="image_name">The name of your image upload goes here!</string>
+    <string name="other_image_name">The name of another image should be here.</string>
     <string name="button_text">Send random data to test sheet</string>
 </resources>

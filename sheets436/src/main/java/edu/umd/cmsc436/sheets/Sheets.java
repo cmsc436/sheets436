@@ -28,6 +28,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.sheets.v4.SheetsScopes;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,13 +52,8 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private GoogleAccountCredential credentials;
 
     private ServiceType cache_service;
-    private TestType cache_type;
     private String cache_userId;
     private String cache_folderId;
-    private String cache_fileName;
-    private Bitmap cache_image;
-    private float cache_value;
-    private float[] cache_trials;
     private OnPrescriptionFetchedListener cache_prescriptionlistener;
     private String appName;
     private String spreadsheetId;
@@ -65,6 +61,8 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
 
     private Map<String, Float> cache_versionmap;
     private DriveApkTask.OnFinishListener cache_finishlistener;
+    private List<UploadToDriveTask.DrivePayload> cache_imageQueue;
+    private WriteDataTask.WriteData[] cache_spreadsheet_payload;
 
     private enum ServiceType {
         UploadPhoto,
@@ -80,27 +78,38 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         this.appName = appName;
         this.spreadsheetId = spreadsheetId;
         this.privateSpreadsheetId = privateSpreadsheetId;
+        this.cache_imageQueue = new LinkedList<>();
 
         credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
                 Arrays.asList(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE)).setBackOff(new ExponentialBackOff());
     }
 
     public void writeData (TestType testType, String userId, float value) {
+        writeDataBatch(new TestType[]{testType}, new String[]{userId}, new float[]{value});
+    }
+
+    public void writeDataBatch(TestType[] testTypes, String[] userIds, float[] values) {
         cache_service = ServiceType.WriteData;
-        cache_type = testType;
-        cache_userId = userId;
-        cache_value = value;
+        int length = Math.min(testTypes.length, Math.min(userIds.length, values.length));
+
+        cache_spreadsheet_payload = new WriteDataTask.WriteData[length];
+        for (int i = 0; i < length; i++) {
+            cache_spreadsheet_payload[i] = new WriteDataTask.WriteData(testTypes[i], userIds[i], values[i]);
+        }
+
+        resumeWriteData();
+    }
+
+    private void resumeWriteData() {
         if (checkConnection()) {
             WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host, hostActivity);
-            writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
+            writeDataTask.execute(cache_spreadsheet_payload);
         }
     }
 
     public void fetchPrescription (String patientId, OnPrescriptionFetchedListener listener) {
         cache_service = ServiceType.FetchPrescription;
-        cache_type = null;
         cache_userId = patientId;
-        cache_value = 0;
         cache_prescriptionlistener = listener;
 
         if (checkConnection()) {
@@ -121,22 +130,45 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     }
 
     public void writeTrials (TestType testType, String userId, float[] trials) {
+        writeTrialsBatch(new TestType[]{testType}, new String[]{userId}, new float[][]{trials});
+    }
+
+    public void writeTrialsBatch(TestType[] testTypes, String[] userIds, float[][] trialsBatch) {
         cache_service = ServiceType.WriteTrials;
-        cache_type = testType;
-        cache_userId = userId;
-        cache_trials = trials;
+        int length = Math.min(testTypes.length, Math.min(userIds.length, trialsBatch.length));
+
+        cache_spreadsheet_payload = new WriteDataTask.WriteData[length];
+        for (int i = 0; i < length; i++) {
+            cache_spreadsheet_payload[i] = new WriteDataTask.WriteData(testTypes[i], userIds[i], trialsBatch[i]);
+        }
+
+        resumeWriteTrials();
+    }
+
+    private void resumeWriteTrials() {
         if (checkConnection()) {
             WriteDataTask writeDataTask = new WriteDataTask(credentials, privateSpreadsheetId, appName, host, hostActivity);
-            writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, trials));
+            writeDataTask.execute(cache_spreadsheet_payload);
         }
     }
 
     public void uploadToDrive(String folderId, String fileName, Bitmap image) {
-        cache_service = ServiceType.UploadPhoto;
-        cache_folderId = folderId;
-        cache_fileName = fileName;
-        cache_image = image;
+        uploadToDriveBatch(new String[]{folderId}, new String[]{fileName}, new Bitmap[]{image});
+    }
 
+    public void uploadToDriveBatch(String[] folderIds, String[] fileNames, Bitmap[] images) {
+        cache_service = ServiceType.UploadPhoto;
+
+        int length = Math.min(folderIds.length, Math.min(fileNames.length, images.length));
+        for (int i = 0; i < length; i++) {
+            UploadToDriveTask.DrivePayload payload = new UploadToDriveTask.DrivePayload(folderIds[i], fileNames[i], images[i]);
+            cache_imageQueue.add(payload);
+        }
+
+        resumeUploadToDrive();
+    }
+
+    private void resumeUploadToDrive() {
         if (checkConnection()) {
             new GoogleApiClient.Builder(hostActivity)
                     .addApi(Drive.API)
@@ -185,7 +217,15 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
 
     private void launchUploadToDriveTask() {
         UploadToDriveTask uploadToDriveTask = new UploadToDriveTask(credentials, appName, host, hostActivity);
-        uploadToDriveTask.execute(new UploadToDriveTask.DrivePayload(cache_folderId, cache_fileName, cache_image));
+        UploadToDriveTask.DrivePayload[] payloads = new UploadToDriveTask.DrivePayload[cache_imageQueue.size()];
+
+        // Unload image queue to the async task.
+        payloads = cache_imageQueue.toArray(payloads);
+        cache_imageQueue.clear();
+
+        if (payloads.length > 0) {
+            uploadToDriveTask.execute(payloads);
+        }
     }
 
     public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
@@ -230,13 +270,14 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private void resume() {
         switch (cache_service) {
             case WriteData:
-                writeData(cache_type, cache_userId, cache_value);
+                resumeWriteData();
                 break;
             case WriteTrials:
-                writeTrials(cache_type, cache_userId, cache_trials);
+                resumeWriteTrials();
                 break;
             case UploadPhoto:
-                uploadToDrive(cache_folderId, cache_fileName, cache_image);
+                resumeUploadToDrive();
+                break;
             case FetchPrescription:
                 fetchPrescription(cache_userId, cache_prescriptionlistener);
                 break;
