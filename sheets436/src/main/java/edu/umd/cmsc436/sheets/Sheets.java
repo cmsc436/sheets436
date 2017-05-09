@@ -24,9 +24,12 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.drive.Drive;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
+import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.sheets.v4.SheetsScopes;
 
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -55,14 +58,20 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private Bitmap cache_image;
     private float cache_value;
     private float[] cache_trials;
+    private OnPrescriptionFetchedListener cache_prescriptionlistener;
     private String appName;
     private String spreadsheetId;
     private String privateSpreadsheetId;
 
+    private Map<String, Float> cache_versionmap;
+    private DriveApkTask.OnFinishListener cache_finishlistener;
+
     private enum ServiceType {
         UploadPhoto,
         WriteData,
-        WriteTrials
+        WriteTrials,
+        FetchPrescription,
+        FetchApks,
     }
 
     public Sheets(Host host, Activity hostActivity, String appName, String spreadsheetId, String privateSpreadsheetId) {
@@ -73,7 +82,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         this.privateSpreadsheetId = privateSpreadsheetId;
 
         credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
-                Collections.singletonList(SheetsScopes.SPREADSHEETS)).setBackOff(new ExponentialBackOff());
+                Arrays.asList(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE)).setBackOff(new ExponentialBackOff());
     }
 
     public void writeData (TestType testType, String userId, float value) {
@@ -84,6 +93,30 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         if (checkConnection()) {
             WriteDataTask writeDataTask = new WriteDataTask(credentials, spreadsheetId, appName, host, hostActivity);
             writeDataTask.execute(new WriteDataTask.WriteData(testType, userId, value));
+        }
+    }
+
+    public void fetchPrescription (String patientId, OnPrescriptionFetchedListener listener) {
+        cache_service = ServiceType.FetchPrescription;
+        cache_type = null;
+        cache_userId = patientId;
+        cache_value = 0;
+        cache_prescriptionlistener = listener;
+
+        if (checkConnection()) {
+            ReadPrescriptionTask readPrescriptionTask = new ReadPrescriptionTask(credentials, spreadsheetId, appName, host, hostActivity, listener);
+            readPrescriptionTask.execute(patientId);
+        }
+    }
+
+    public void fetchApks (String folderId, Map<String, Float> versionMap, DriveApkTask.OnFinishListener listener) {
+        cache_service = ServiceType.FetchApks;
+        cache_folderId = folderId;
+        cache_versionmap = versionMap;
+        cache_finishlistener = listener;
+
+        if (checkConnection()) {
+            launchDriveApkTask();
         }
     }
 
@@ -115,6 +148,15 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         }
     }
 
+    private void launchDriveApkTask () {
+        cache_service = null;
+        DriveApkTask driveApkTask = new DriveApkTask(credentials, appName, host, hostActivity);
+        driveApkTask
+                .setVersionMap(cache_versionmap)
+                .setOnFinishListener(cache_finishlistener)
+                .execute(new UploadToDriveTask.DrivePayload(cache_folderId, null, null));
+    }
+
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         launchUploadToDriveTask();
@@ -133,6 +175,11 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 // Unable to resolve, message user appropriately
                 host.notifyFinished(e);
             }
+        } else if (connectionResult.getErrorCode() == ConnectionResult.INTERNAL_ERROR) {
+            // API reference suggests retrying.
+            resume();
+        } else {
+            Log.e(getClass().getCanonicalName(), "Connection error " + connectionResult.getErrorCode() + ": " + connectionResult.getErrorMessage());
         }
     }
 
@@ -171,7 +218,11 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
             }
         } else if (requestCode == host.getRequestCode(Action.REQUEST_CONNECTION_RESOLUTION)) {
             if (resultCode == RESULT_OK) {
-                launchUploadToDriveTask();
+                if (cache_service == ServiceType.FetchApks) {
+                    launchDriveApkTask();
+                } else {
+                    launchUploadToDriveTask();
+                }
             }
         }
     }
@@ -186,6 +237,12 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 break;
             case UploadPhoto:
                 uploadToDrive(cache_folderId, cache_fileName, cache_image);
+            case FetchPrescription:
+                fetchPrescription(cache_userId, cache_prescriptionlistener);
+                break;
+            case FetchApks:
+                fetchApks(cache_folderId, cache_versionmap, cache_finishlistener);
+                break;
             default:
                 break;
         }
@@ -244,6 +301,10 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         int getRequestCode(Action action);
 
         void notifyFinished(Exception e);
+    }
+
+    public interface OnPrescriptionFetchedListener {
+        void onPrescriptionFetched (@Nullable List<String> raw_data);
     }
 
     public enum Action {
