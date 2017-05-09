@@ -57,14 +57,18 @@ public class MainActivity extends AppCompatActivity implements Sheets.Host {
 
         // Grab some random picture from the Internet.
         Bitmap bitmap = null;
+        Bitmap otherBitmap = null;
         try {
             URL url = new URL("https://www.umiacs.umd.edu/sites/default/files/styles/medium/public/web-Memon09.jpg");
             bitmap = BitmapFactory.decodeStream((InputStream) url.getContent());
+            url = new URL("https://developer.android.com/_static/c4075bed68/images/android/touchicon-180.png");
+            otherBitmap = BitmapFactory.decodeStream((InputStream) url.getContent());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         sheet.uploadToDrive(getString(R.string.CMSC436_test_folder), getString(R.string.image_name), bitmap);
+        sheet.uploadToDrive(getString(R.string.CMSC436_test_folder), getString(R.string.other_image_name), otherBitmap);
     }
 
     public void sendToSheets(View v) {

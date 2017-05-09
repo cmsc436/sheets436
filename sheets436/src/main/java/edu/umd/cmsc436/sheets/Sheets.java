@@ -28,6 +28,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.sheets.v4.SheetsScopes;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -54,8 +55,6 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private TestType cache_type;
     private String cache_userId;
     private String cache_folderId;
-    private String cache_fileName;
-    private Bitmap cache_image;
     private float cache_value;
     private float[] cache_trials;
     private OnPrescriptionFetchedListener cache_prescriptionlistener;
@@ -65,6 +64,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
 
     private Map<String, Float> cache_versionmap;
     private DriveApkTask.OnFinishListener cache_finishlistener;
+    private List<UploadToDriveTask.DrivePayload> cache_imageQueue;
 
     private enum ServiceType {
         UploadPhoto,
@@ -80,6 +80,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
         this.appName = appName;
         this.spreadsheetId = spreadsheetId;
         this.privateSpreadsheetId = privateSpreadsheetId;
+        this.cache_imageQueue = new LinkedList<>();
 
         credentials = GoogleAccountCredential.usingOAuth2(hostActivity,
                 Arrays.asList(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE)).setBackOff(new ExponentialBackOff());
@@ -133,10 +134,14 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
 
     public void uploadToDrive(String folderId, String fileName, Bitmap image) {
         cache_service = ServiceType.UploadPhoto;
-        cache_folderId = folderId;
-        cache_fileName = fileName;
-        cache_image = image;
 
+        UploadToDriveTask.DrivePayload payload = new UploadToDriveTask.DrivePayload(folderId, fileName, image);
+        cache_imageQueue.add(payload);
+
+        resumeUploadToDrive();
+    }
+
+    private void resumeUploadToDrive() {
         if (checkConnection()) {
             new GoogleApiClient.Builder(hostActivity)
                     .addApi(Drive.API)
@@ -185,7 +190,10 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
 
     private void launchUploadToDriveTask() {
         UploadToDriveTask uploadToDriveTask = new UploadToDriveTask(credentials, appName, host, hostActivity);
-        uploadToDriveTask.execute(new UploadToDriveTask.DrivePayload(cache_folderId, cache_fileName, cache_image));
+        UploadToDriveTask.DrivePayload[] payloads = new UploadToDriveTask.DrivePayload[cache_imageQueue.size()];
+        payloads = cache_imageQueue.toArray(payloads);
+        cache_imageQueue.clear();
+        uploadToDriveTask.execute(payloads);
     }
 
     public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
@@ -236,7 +244,7 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
                 writeTrials(cache_type, cache_userId, cache_trials);
                 break;
             case UploadPhoto:
-                uploadToDrive(cache_folderId, cache_fileName, cache_image);
+                resumeUploadToDrive();
             case FetchPrescription:
                 fetchPrescription(cache_userId, cache_prescriptionlistener);
                 break;
