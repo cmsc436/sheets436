@@ -191,9 +191,14 @@ public class Sheets implements GoogleApiClient.ConnectionCallbacks, GoogleApiCli
     private void launchUploadToDriveTask() {
         UploadToDriveTask uploadToDriveTask = new UploadToDriveTask(credentials, appName, host, hostActivity);
         UploadToDriveTask.DrivePayload[] payloads = new UploadToDriveTask.DrivePayload[cache_imageQueue.size()];
+
+        // Unload image queue to the async task.
         payloads = cache_imageQueue.toArray(payloads);
         cache_imageQueue.clear();
-        uploadToDriveTask.execute(payloads);
+
+        if (payloads.length > 0) {
+            uploadToDriveTask.execute(payloads);
+        }
     }
 
     public void onRequestPermissionsResult (int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
